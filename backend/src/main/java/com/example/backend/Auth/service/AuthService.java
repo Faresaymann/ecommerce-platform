@@ -16,11 +16,14 @@ public interface AuthService {
 
     LoginResponse login(SignInRequest signInRequest);
 
-    UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, String newEmail, MultipartFile file) throws IOException;
+    UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName,  MultipartFile file) throws IOException;
 
     GetProfileResponse getUserProfile(String email);
 
     DeleteResponse DeleteCurrentUser(String email);
+
+    UpdateEmailRequest requestEmailUpdate(String currentEmail, String newEmail);
+    UpdateEmailResponse verifyEmailUpdate(String tokenStr);
 
     JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq);
 

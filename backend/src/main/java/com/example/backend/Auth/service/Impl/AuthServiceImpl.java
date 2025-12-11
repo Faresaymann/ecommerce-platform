@@ -14,7 +14,6 @@ import com.example.backend.util.EmailService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -31,17 +30,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired
+
     private final UsersRepo usersRepo;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final VerificationTokenRepo verificationTokenRepo;
     private final AuthenticationManager authenticationManager;
     private final JWTserviceImpl jwtService;
-
-
-
-    @Autowired
     private final Cloudinary cloudinary;
 
 
@@ -49,7 +44,7 @@ public class AuthServiceImpl implements AuthService {
 
 
 
-//---------------------------------------------------register--------------------------------------------------//
+   //---------------------------------------------------register--------------------------------------------------//
 @Override
 @Transactional
 public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException {
@@ -98,7 +93,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
     verificationTokenRepo.save(verificationToken);
 
 
-    // send verification email ( change the URL depending on your deployment(frontend(3000) or backend(8080)) )
+    // send verification email (change the URL depending on your deployment(frontend(3000) or backend(8080)) )
     String verificationLink = "http://localhost:8080/api/v1/auth/verify-email?token=" + token;
     String body = "Hello " + user.getFirstName() + ",\n\n" +
             "Click the link to verify your account:\n" + verificationLink +
@@ -109,7 +104,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
 }
 
 
-//---------------------------------------------------verifyEmail--------------------------------------------------//
+    //---------------------------------------------------verifyEmail--------------------------------------------------//
 
     // verify email using token
     @Override
@@ -193,7 +188,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
     }
     //-------------------------------------------------updateProfile----------------------------------------------------//
     @Override
-    public UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, String newEmail, MultipartFile file) throws IOException {
+    public UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, MultipartFile file) throws IOException {
 
         Users user = usersRepo.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -201,9 +196,8 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         // Update special fields only if present
         if (firstName != null) user.setFirstName(firstName);
         if (lastName != null) user.setLastName(lastName);
-        if (newEmail != null) user.setEmail(newEmail);
 
-        // Upload new profile photo
+        // Upload a new profile photo
         if (file != null && !file.isEmpty()) {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
@@ -224,7 +218,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
                 user.getProfileImageUrl()
         );
     }
-//-------------------------------------------------getUserProfile----------------------------------------------------//
+    //-------------------------------------------------getUserProfile----------------------------------------------------//
     public GetProfileResponse getUserProfile(String email) {
         Users user = usersRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
@@ -237,7 +231,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         );
     }
 
-//-------------------------------------------DeleteCurrentUser----------------------------------------------------------//
+    //-------------------------------------------DeleteCurrentUser----------------------------------------------------------//
 
     @Transactional
     public DeleteResponse DeleteCurrentUser(String email) {
@@ -251,12 +245,64 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
     }
 
 
-//-------------------------------------------getAllUsers----------------------------------------------------------//
+    //-------------------------------------------requestEmailUpdate----------------------------------------------------------//
+    @Transactional
+    public UpdateEmailRequest requestEmailUpdate(String currentEmail, String newEmail) {
+        Users user = usersRepo.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Generate verification token
+        VerificationToken token = verificationTokenRepo.findByUser(user)
+                .orElse(new VerificationToken());
+        token.setUser(user);
+        token.setToken(UUID.randomUUID().toString());
+        token.setExpiryDate(LocalDateTime.now().plusHours(24));
+        token.setUsed(false);
+        token.setNewEmail(newEmail);
+        verificationTokenRepo.save(token);
+
+        // Send email with token link
+        String verificationLink = "http://localhost:8080/api/v1/auth/verify-email?token=" + token;
+        String body = "Hello " + user.getFirstName() + ",\n\n" +
+                "Click the link to verify your account:\n" + verificationLink +
+                "\n\nIf you did not try to change your email , ignore this email.";
+        emailService.sendEmail(newEmail, "Verify your email", "Click to verify: " + body);
+
+        return new UpdateEmailRequest(
+                "Verification email sent. Please check your inbox to confirm your new email.",
+                newEmail,
+                token.getToken()
+        );
+
+    }
+
+    //-------------------------------------------verifyEmailUpdate----------------------------------------------------------//
+    // Verify email token and update email
+    @Transactional
+    public UpdateEmailResponse verifyEmailUpdate(String tokenStr) {
+        VerificationToken token = verificationTokenRepo.findByToken(tokenStr)
+                .orElseThrow(() -> new RuntimeException("Invalid token"));
+
+        if (token.isUsed() || token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Token expired or already used");
+        }
+
+        Users user = token.getUser();
+        user.setEmail(token.getNewEmail()); // new email from request saved in token
+        token.setUsed(true);
+        usersRepo.save(user);
+        verificationTokenRepo.save(token);
+        return new UpdateEmailResponse("Email updated successfully" , user.getEmail());
+    }
+
+
+    //-------------------------------------------getAllUsers----------------------------------------------------------//
 
     public @Nullable List<Users> getAllUsers() {
         return usersRepo.findAll();
     }
-//-----------------------------------------------------------------------------------------------------//
+    //-----------------------------------------------------------------------------------------------------//
+
 //    public @Nullable Users findTokenByEmail(String email) {
 //        return usersRepo.findByEmail(email).orElseThrow();
 //    }

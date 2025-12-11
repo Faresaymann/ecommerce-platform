@@ -18,6 +18,9 @@ public class VerificationToken {
 
     private String token;
 
+    @Column(name = "new_email" )
+    private String newEmail;
+
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false, unique = true)
     private Users user;

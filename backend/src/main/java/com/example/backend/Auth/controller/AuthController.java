@@ -4,9 +4,9 @@ package com.example.backend.Auth.controller;
 
 import com.example.backend.Auth.dto.Requests.SignInRequest;
 import com.example.backend.Auth.dto.Requests.SignUpRequest;
+import com.example.backend.Auth.dto.Requests.UpdateEmailRequest;
 import com.example.backend.Auth.dto.Responses.*;
 import com.example.backend.Auth.service.AuthService;
-import com.example.backend.Auth.service.Impl.AuthServiceImpl;
 import com.example.backend.entity.Users;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -57,7 +57,6 @@ public class AuthController {
     }
 
 
-
     // verify email for user Register endpoint
     @GetMapping("/verify-email")
     public ResponseEntity<RegisterResponse> verifyEmail(@RequestParam("token") String token) {
@@ -71,7 +70,6 @@ public class AuthController {
             Authentication authentication,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
-            @RequestParam(required = false) String email,
             @RequestPart(value = "file", required = false) MultipartFile file
     ) throws IOException {
 
@@ -81,13 +79,13 @@ public class AuthController {
                 TokenEmail,
                 firstName,
                 lastName,
-                email,
                 file
         );
 
         return ResponseEntity.ok(response);
     }
 
+    //get current user profile
     @GetMapping("/me")
     public ResponseEntity<GetProfileResponse> getCurrentUser(Authentication authentication) {
         String TokenEmail = authentication.getName();
@@ -95,13 +93,30 @@ public class AuthController {
         return ResponseEntity.ok(resp);
     }
 
-
+    //delete current user profile
     @DeleteMapping("/me")
     public DeleteResponse DeleteCurrentUser(Authentication authentication){
         String TokenEmail = authentication.getName();
         DeleteResponse resp = authService.DeleteCurrentUser(TokenEmail);
         return resp;
     }
+
+
+
+    @PostMapping("/update-email")
+    public UpdateEmailRequest requestEmailUpdate(@RequestBody UpdateEmailRequest request,
+                                                     Authentication authentication) {
+        String currentEmail = authentication.getName();
+        UpdateEmailRequest resp=authService.requestEmailUpdate(currentEmail, request.getNewEmail());
+        return resp;
+    }
+
+    @GetMapping("/update-email/verify")
+    public UpdateEmailResponse verifyUpdatedEmail(@RequestParam String token) {
+        UpdateEmailResponse resp = authService.verifyEmailUpdate(token);
+        return resp;
+    }
+
 
     // (dev endpoints for testing)
     @GetMapping("/dev/users")
