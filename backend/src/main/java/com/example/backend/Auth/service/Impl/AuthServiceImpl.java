@@ -1,5 +1,7 @@
 package com.example.backend.Auth.service.Impl;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.example.backend.Auth.dto.*;
 import com.example.backend.Auth.service.AuthService;
 import com.example.backend.entity.Role;
@@ -17,9 +19,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -33,6 +37,11 @@ public class AuthServiceImpl implements AuthService {
     private final VerificationTokenRepo verificationTokenRepo;
     private final AuthenticationManager authenticationManager;
     private final JWTserviceImpl jwtService;
+
+
+
+    @Autowired
+    private final Cloudinary cloudinary;
 
 
 
@@ -52,9 +61,10 @@ public class AuthServiceImpl implements AuthService {
 //register user with Email verification
 @Override
 @Transactional
-public RegisterResponse register(SignUpRequest signUpRequest) {
+public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException {
     // check if email already exists
     if (usersRepo.findByEmail(signUpRequest.getEmail()).isPresent()) {
+        System.out.println("Email already in use");
         return new RegisterResponse("Email already in use");
     }
 
@@ -68,6 +78,21 @@ public RegisterResponse register(SignUpRequest signUpRequest) {
             .enabled(false) // inactive until verified
             .createdAt(LocalDateTime.now())
             .build();
+
+            // Upload image to Cloudinary
+            if (file != null && !file.isEmpty()) {
+                Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                        ObjectUtils.asMap(
+                                "folder", "Customers",          // folder name
+                                "overwrite", true,
+                                "resource_type", "image"
+                        )
+                );
+                String imageUrl = (String) uploadResult.get("secure_url");
+                user.setProfileImageUrl(imageUrl);
+            }
+
+    //save user to DB
     usersRepo.save(user);
 
 

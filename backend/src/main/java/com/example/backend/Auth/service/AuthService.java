@@ -2,14 +2,16 @@ package com.example.backend.Auth.service;
 
 import com.example.backend.Auth.dto.*;
 import com.example.backend.entity.Users;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface AuthService {
 
     //Users register(SignUpRequest signUpRequest);
 
-    RegisterResponse register(SignUpRequest signUpRequest);
+    RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException;
 
     JwtAuthenticationResponse login(SignInRequest signInRequest);
 
@@ -20,9 +22,6 @@ public interface AuthService {
     void updatePassword(UpdatePasswordRequest updatePasswordRequest, String email);
 
     Users updateProfile(UpdateProfileRequest updateProfileRequest, String email);
-
-    //void verifyEmail(EmailVerificationRequest emailVerificationRequest);
-    //void verifyEmail(String token);
 
     RegisterResponse verifyEmail(String token);
 

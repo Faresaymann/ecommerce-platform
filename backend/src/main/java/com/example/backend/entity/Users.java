@@ -70,6 +70,10 @@ public class Users implements UserDetails {
         return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
+    //profile image url
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
     @Override
     public String getUsername() {
         return email;
