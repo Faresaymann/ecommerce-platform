@@ -2,6 +2,8 @@ package com.example.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -41,6 +43,7 @@ public class Users implements UserDetails {
 
     private boolean enabled = false;
 
+    @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
     private String verificationCode; // for email verification
@@ -49,12 +52,12 @@ public class Users implements UserDetails {
 
     private LocalDateTime resetTokenExpiry; // expiry of reset token
 
-    private String phoneNumber; // optional if needed
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
-    private String address; // optional if needed
-
-    private LocalDateTime createdAt = LocalDateTime.now();
-
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @PreUpdate
@@ -89,6 +92,6 @@ public class Users implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return emailVerified; // enabled to your emailVerified flag
     }
 }

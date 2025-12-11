@@ -2,42 +2,58 @@ package com.example.backend.Auth.controller;
 //All endpoints (register, login, refresh, reset password, etc.)
 
 
+import com.example.backend.Auth.dto.JwtAuthenticationResponse;
+import com.example.backend.Auth.dto.RegisterResponse;
+import com.example.backend.Auth.dto.SignInRequest;
+import com.example.backend.Auth.dto.SignUpRequest;
+import com.example.backend.Auth.service.AuthService;
+import com.example.backend.Auth.service.Impl.AuthServiceImpl;
 import com.example.backend.entity.Users;
-import com.example.backend.entity.VerificationToken;
-import com.example.backend.repository.UsersRepo;
-import com.example.backend.repository.VerificationTokenRepo;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
-import java.time.LocalDateTime;
-
-@RestController("api/v1/auth")
+@RestController
+@RequestMapping("/api/v1/auth")
 @AllArgsConstructor
 public class AuthController {
 
-    private final VerificationTokenRepo verificationTokenRepo;
-    private final UsersRepo usersRepo;
 
-    @GetMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
-        VerificationToken verificationToken = verificationTokenRepo.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
+    private final AuthService authService;
 
-        if (verificationToken.isUsed() || verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body("Token invalid or expired");
-        }
 
-        Users user = verificationToken.getUser();
-        user.setEnabled(true);
-        usersRepo.save(user);
-
-        verificationToken.setUsed(true);
-        verificationTokenRepo.save(verificationToken);
-
-        return ResponseEntity.ok("Email verified successfully!");
+    // register endpoint
+    @PostMapping("/register")
+    public ResponseEntity<RegisterResponse> register(@RequestBody SignUpRequest signUpRequest) {
+        RegisterResponse resp = authService.register(signUpRequest);
+        return ResponseEntity.ok(resp);
     }
+    // login endpoint
+    @PostMapping("/login")
+    public ResponseEntity<JwtAuthenticationResponse> login(@RequestBody SignInRequest request) {
+        JwtAuthenticationResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    // verify email for user Register endpoint
+    @GetMapping("/verify-email")
+    public ResponseEntity<RegisterResponse> verifyEmail(@RequestParam("token") String token) {
+        RegisterResponse resp = authService.verifyEmail(token);
+        return ResponseEntity.ok(resp);
+    }
+
+    // (dev endpoints for testing)
+    @GetMapping("/dev/users")
+    public ResponseEntity<List<Users>> listUsers() {
+        return ResponseEntity.ok(((AuthServiceImpl)authService).getAllUsers());
+    }
+
+//    @GetMapping("/dev/token")
+//    public ResponseEntity<String> getTokenForEmail(@RequestParam String email) {
+//        // return latest token for email — dev only
+//        return ResponseEntity.ok(((AuthServiceImpl)authService).findTokenByEmail(email));
+//    }
+
 
 }
