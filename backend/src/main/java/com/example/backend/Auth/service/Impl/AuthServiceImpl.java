@@ -2,7 +2,10 @@ package com.example.backend.Auth.service.Impl;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.example.backend.Auth.dto.*;
+import com.example.backend.Auth.dto.Requests.*;
+import com.example.backend.Auth.dto.Responses.JwtAuthenticationResponse;
+import com.example.backend.Auth.dto.Responses.RegisterResponse;
+import com.example.backend.Auth.dto.Responses.UpdateProfileResponse;
 import com.example.backend.Auth.service.AuthService;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Users;
@@ -83,7 +86,8 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
             if (file != null && !file.isEmpty()) {
                 Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                         ObjectUtils.asMap(
-                                "folder", "Customers",          // folder name
+                                "folder", "Customers",// folder name
+                                "public_id", signUpRequest.getEmail(),//file name
                                 "overwrite", true,
                                 "resource_type", "image"
                         )
@@ -199,11 +203,36 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
     }
     //-----------------------------------------------------------------------------------------------------//
     @Override
-    public Users updateProfile(UpdateProfileRequest updateProfileRequest, String email) {
-        Users user = usersRepo.findByEmail(email).orElseThrow();
-        user.setFirstName(updateProfileRequest.getFirstName());
-        user.setLastName(updateProfileRequest.getLastName());
-        return usersRepo.save(user);
+    public UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, String newEmail, MultipartFile file) throws IOException {
+
+        Users user = usersRepo.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Update special fields only if present
+        if (firstName != null) user.setFirstName(firstName);
+        if (lastName != null) user.setLastName(lastName);
+        if (newEmail != null) user.setEmail(newEmail);
+
+        // Upload new profile photo
+        if (file != null && !file.isEmpty()) {
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "Customers",// folder name
+                            "public_id", userEmail, //file name
+                            "overwrite", true,
+                            "resource_type", "image"
+                    )
+            );
+            String imageUrl = (String) uploadResult.get("secure_url");
+            user.setProfileImageUrl(imageUrl);
+        }
+
+        usersRepo.save(user);
+
+        return new UpdateProfileResponse(
+                "Profile updated successfully",
+                user.getProfileImageUrl()
+        );
     }
 //-----------------------------------------------------------------------------------------------------//
 

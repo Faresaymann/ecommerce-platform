@@ -2,10 +2,11 @@ package com.example.backend.Auth.controller;
 //All endpoints (register, login, refresh, reset password, etc.)
 
 
-import com.example.backend.Auth.dto.JwtAuthenticationResponse;
-import com.example.backend.Auth.dto.RegisterResponse;
-import com.example.backend.Auth.dto.SignInRequest;
-import com.example.backend.Auth.dto.SignUpRequest;
+import com.example.backend.Auth.dto.Requests.SignInRequest;
+import com.example.backend.Auth.dto.Requests.SignUpRequest;
+import com.example.backend.Auth.dto.Responses.JwtAuthenticationResponse;
+import com.example.backend.Auth.dto.Responses.RegisterResponse;
+import com.example.backend.Auth.dto.Responses.UpdateProfileResponse;
 import com.example.backend.Auth.service.AuthService;
 import com.example.backend.Auth.service.Impl.AuthServiceImpl;
 import com.example.backend.entity.Users;
@@ -13,6 +14,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,27 +29,6 @@ public class AuthController {
 
     private final AuthService authService;
 
-    // register endpoint
-//    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//    public ResponseEntity<?> register(
-//            @RequestParam String firstName,
-//            @RequestParam String lastName,
-//            @RequestParam String email,
-//            @RequestParam String password,
-//            @RequestPart(value = "file", required = false) MultipartFile file) throws IOException {
-//
-//        SignUpRequest dto = new SignUpRequest();
-//        dto.setFirstName(firstName);
-//        dto.setLastName(lastName);
-//        dto.setEmail(email);
-//        dto.setPassword(password);
-//
-//        RegisterResponse user = authService.register(dto, file); // adapt service signature to accept dto + file
-//        return ResponseEntity.ok(Map.of(
-//                "message", "User registered. Please check your email for verification.",
-//                "profileImageUrl", user.getProfileImageUrl()
-//        ));
-//    }
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<RegisterResponse> register(
             @RequestParam String firstName,
@@ -69,6 +50,7 @@ public class AuthController {
 
     }
 
+
     // login endpoint
     @PostMapping("/login")
     public ResponseEntity<JwtAuthenticationResponse> login(@RequestBody SignInRequest request) {
@@ -76,12 +58,38 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+
+
     // verify email for user Register endpoint
     @GetMapping("/verify-email")
     public ResponseEntity<RegisterResponse> verifyEmail(@RequestParam("token") String token) {
         RegisterResponse resp = authService.verifyEmail(token);
         return ResponseEntity.ok(resp);
     }
+
+
+    @PutMapping(value = "/update-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProfile(
+            Authentication authentication,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String email,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) throws IOException {
+
+        String TokenEmail = authentication.getName(); // Extract user identity from token
+
+        UpdateProfileResponse response = authService.updateProfile(
+                TokenEmail,
+                firstName,
+                lastName,
+                email,
+                file
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 
 
     // (dev endpoints for testing)

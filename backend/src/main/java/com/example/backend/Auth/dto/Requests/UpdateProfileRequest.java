@@ -1,17 +1,15 @@
-package com.example.backend.Auth.dto;
-
+package com.example.backend.Auth.dto.Requests;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
-@AllArgsConstructor
 @Data
-public class SignUpRequest {
+@AllArgsConstructor
+@NoArgsConstructor
+public class UpdateProfileRequest {
     private String firstName;
     private String lastName;
     private String email;
-    private String password;
-//    private MultipartFile profileImage;
+
 }

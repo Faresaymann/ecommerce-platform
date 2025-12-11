@@ -1,6 +1,9 @@
 package com.example.backend.Auth.service;
 
-import com.example.backend.Auth.dto.*;
+import com.example.backend.Auth.dto.Requests.*;
+import com.example.backend.Auth.dto.Responses.JwtAuthenticationResponse;
+import com.example.backend.Auth.dto.Responses.RegisterResponse;
+import com.example.backend.Auth.dto.Responses.UpdateProfileResponse;
 import com.example.backend.entity.Users;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,13 +18,13 @@ public interface AuthService {
 
     JwtAuthenticationResponse login(SignInRequest signInRequest);
 
+    UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, String newEmail, MultipartFile file) throws IOException;
+
     JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq);
 
     void sendResetPasswordEmail(ResetPasswordRequest resetPasswordRequest);
 
     void updatePassword(UpdatePasswordRequest updatePasswordRequest, String email);
-
-    Users updateProfile(UpdateProfileRequest updateProfileRequest, String email);
 
     RegisterResponse verifyEmail(String token);
 
