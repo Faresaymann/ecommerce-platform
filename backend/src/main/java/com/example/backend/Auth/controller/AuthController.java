@@ -4,9 +4,7 @@ package com.example.backend.Auth.controller;
 
 import com.example.backend.Auth.dto.Requests.SignInRequest;
 import com.example.backend.Auth.dto.Requests.SignUpRequest;
-import com.example.backend.Auth.dto.Responses.JwtAuthenticationResponse;
-import com.example.backend.Auth.dto.Responses.RegisterResponse;
-import com.example.backend.Auth.dto.Responses.UpdateProfileResponse;
+import com.example.backend.Auth.dto.Responses.*;
 import com.example.backend.Auth.service.AuthService;
 import com.example.backend.Auth.service.Impl.AuthServiceImpl;
 import com.example.backend.entity.Users;
@@ -53,8 +51,8 @@ public class AuthController {
 
     // login endpoint
     @PostMapping("/login")
-    public ResponseEntity<JwtAuthenticationResponse> login(@RequestBody SignInRequest request) {
-        JwtAuthenticationResponse response = authService.login(request);
+    public ResponseEntity<LoginResponse> login(@RequestBody SignInRequest request) {
+        LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 
@@ -90,12 +88,19 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<GetProfileResponse> getCurrentUser(Authentication authentication) {
+        String TokenEmail = authentication.getName();
+        GetProfileResponse resp= authService.getUserProfile(TokenEmail);
+        return ResponseEntity.ok(resp);
+    }
+
 
 
     // (dev endpoints for testing)
     @GetMapping("/dev/users")
     public ResponseEntity<List<Users>> listUsers() {
-        return ResponseEntity.ok(((AuthServiceImpl)authService).getAllUsers());
+        return ResponseEntity.ok((authService).getAllUsers());
     }
 
 //    @GetMapping("/me")

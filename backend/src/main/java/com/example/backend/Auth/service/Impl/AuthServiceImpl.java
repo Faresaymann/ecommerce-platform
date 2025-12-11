@@ -3,9 +3,7 @@ package com.example.backend.Auth.service.Impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.example.backend.Auth.dto.Requests.*;
-import com.example.backend.Auth.dto.Responses.JwtAuthenticationResponse;
-import com.example.backend.Auth.dto.Responses.RegisterResponse;
-import com.example.backend.Auth.dto.Responses.UpdateProfileResponse;
+import com.example.backend.Auth.dto.Responses.*;
 import com.example.backend.Auth.service.AuthService;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Users;
@@ -48,20 +46,10 @@ public class AuthServiceImpl implements AuthService {
 
 
 
-//register user without Email verification
-//    @Override
-//    public Users register(SignUpRequest signUpRequest) {
-//        Users user = new Users();
-//        user.setFirstName(signUpRequest.getFirstName());
-//        user.setLastName(signUpRequest.getLastName());
-//        user.setEmail(signUpRequest.getEmail());
-//        user.setRole(Role.ROLE_USER);
-//        user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
-//        return usersRepo.save(user);
-//    }
 
 
-//register user with Email verification
+
+//---------------------------------------------------register--------------------------------------------------//
 @Override
 @Transactional
 public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException {
@@ -121,7 +109,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
 }
 
 
-//-----------------------------------------------------------------------------------------------------//
+//---------------------------------------------------verifyEmail--------------------------------------------------//
 
     // verify email using token
     @Override
@@ -144,11 +132,9 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         return new RegisterResponse("Email verified successfully!");
     }
 
-
-    //-----------------------------------------------------------------------------------------------------//
-    // login user and generate JWT
+    //----------------------------------------------------login-------------------------------------------------//
     @Override
-    public JwtAuthenticationResponse login(SignInRequest signInRequest) {
+    public LoginResponse login(SignInRequest signInRequest) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(signInRequest.getEmail(), signInRequest.getPassword())
         );
@@ -164,13 +150,17 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         String token = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
-        JwtAuthenticationResponse resp = new JwtAuthenticationResponse();
-        resp.setToken(token);
-        resp.setRefreshToken(refreshToken);
-        return resp;
+        return new LoginResponse (
+            "Login successful",
+                token, refreshToken,
+            user.getEmail(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getProfileImageUrl()
+        );
     }
 
-    //-----------------------------------------------------------------------------------------------------//
+    //-------------------------------------------------refreshToken----------------------------------------------------//
     @Override
     public JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq) {
         String userEmail = jwtService.extractUsername(refreshTokenReq.getToken());
@@ -185,12 +175,12 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         }
         return null;
     }
-    //-----------------------------------------------------------------------------------------------------//
+    //-----------------------------------------------sendResetPasswordEmail------------------------------------------------------//
     @Override
     public void sendResetPasswordEmail(ResetPasswordRequest resetPasswordRequest) {
 
     }
-    //-----------------------------------------------------------------------------------------------------//
+    //---------------------------------------------updatePassword--------------------------------------------------------//
     @Override
     public void updatePassword(UpdatePasswordRequest updatePasswordRequest, String email) {
         Users user = usersRepo.findByEmail(email).orElseThrow();
@@ -201,7 +191,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
             throw new IllegalArgumentException("Old password does not match");
         }
     }
-    //-----------------------------------------------------------------------------------------------------//
+    //-------------------------------------------------updateProfile----------------------------------------------------//
     @Override
     public UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, String newEmail, MultipartFile file) throws IOException {
 
@@ -234,7 +224,22 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
                 user.getProfileImageUrl()
         );
     }
-//-----------------------------------------------------------------------------------------------------//
+//-------------------------------------------------getUserProfile----------------------------------------------------//
+    public GetProfileResponse getUserProfile(String email) {
+        Users user = usersRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        return new GetProfileResponse(
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getProfileImageUrl()
+        );
+    }
+
+
+
+//-------------------------------------------getAllUsers----------------------------------------------------------//
 
     public @Nullable List<Users> getAllUsers() {
         return usersRepo.findAll();
