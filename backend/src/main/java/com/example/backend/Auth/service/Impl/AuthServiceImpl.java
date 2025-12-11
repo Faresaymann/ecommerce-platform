@@ -237,6 +237,18 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         );
     }
 
+//-------------------------------------------DeleteCurrentUser----------------------------------------------------------//
+
+    @Transactional
+    public DeleteResponse DeleteCurrentUser(String email) {
+        Users user = usersRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        verificationTokenRepo.deleteByUser(user);
+        usersRepo.delete(user);
+        return new DeleteResponse(
+          " User Deleted Successfully :( "
+        );
+    }
 
 
 //-------------------------------------------getAllUsers----------------------------------------------------------//

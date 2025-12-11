@@ -96,6 +96,12 @@ public class AuthController {
     }
 
 
+    @DeleteMapping("/me")
+    public DeleteResponse DeleteCurrentUser(Authentication authentication){
+        String TokenEmail = authentication.getName();
+        DeleteResponse resp = authService.DeleteCurrentUser(TokenEmail);
+        return resp;
+    }
 
     // (dev endpoints for testing)
     @GetMapping("/dev/users")

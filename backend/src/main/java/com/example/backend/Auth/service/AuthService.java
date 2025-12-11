@@ -20,7 +20,7 @@ public interface AuthService {
 
     GetProfileResponse getUserProfile(String email);
 
-    //DeleteResponse DeleteCurrentUser(String email);
+    DeleteResponse DeleteCurrentUser(String email);
 
     JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq);
 
