@@ -45,9 +45,9 @@ public class AuthServiceImpl implements AuthService {
 
 
    //---------------------------------------------------register--------------------------------------------------//
-@Override
-@Transactional
-public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException {
+    @Override
+    @Transactional
+    public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException {
     // check if email already exists
     if (usersRepo.findByEmail(signUpRequest.getEmail()).isPresent()) {
         System.out.println("Email already in use");
@@ -93,7 +93,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
     verificationTokenRepo.save(verificationToken);
 
 
-    // send verification email (change the URL depending on your deployment(frontend(3000) or backend(8080)) )
+    // send verification email ( change the URL depending on your deployment(frontend(3000) or backend(8080)) )
     String verificationLink = "http://localhost:8080/api/v1/auth/verify-email?token=" + token;
     String body = "Hello " + user.getFirstName() + ",\n\n" +
             "Click the link to verify your account:\n" + verificationLink +
@@ -170,22 +170,27 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         }
         return null;
     }
-    //-----------------------------------------------sendResetPasswordEmail------------------------------------------------------//
-    @Override
-    public void sendResetPasswordEmail(ResetPasswordRequest resetPasswordRequest) {
 
-    }
-    //---------------------------------------------updatePassword--------------------------------------------------------//
+    //-----------------------------------------------updatePassword------------------------------------------------------//
     @Override
-    public void updatePassword(UpdatePasswordRequest updatePasswordRequest, String email) {
-        Users user = usersRepo.findByEmail(email).orElseThrow();
-        if (passwordEncoder.matches(updatePasswordRequest.getOldPassword(), user.getPassword())) {
-            user.setPassword(passwordEncoder.encode(updatePasswordRequest.getNewPassword()));
-            usersRepo.save(user);
-        } else {
-            throw new IllegalArgumentException("Old password does not match");
+    @Transactional
+    public MessageResponse updatePassword(UpdatePasswordRequest request, String currentUserEmail) {
+
+        Users user = usersRepo.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check old password
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Old password is incorrect");
         }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        usersRepo.save(user);
+
+        return new MessageResponse("Password updated successfully");
     }
+
     //-------------------------------------------------updateProfile----------------------------------------------------//
     @Override
     public UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, MultipartFile file) throws IOException {
@@ -215,6 +220,8 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
 
         return new UpdateProfileResponse(
                 "Profile updated successfully",
+                user.getFirstName(),
+                user.getLastName(),
                 user.getProfileImageUrl()
         );
     }
@@ -234,12 +241,12 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
     //-------------------------------------------DeleteCurrentUser----------------------------------------------------------//
 
     @Transactional
-    public DeleteResponse DeleteCurrentUser(String email) {
+    public MessageResponse DeleteCurrentUser(String email) {
         Users user = usersRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
         verificationTokenRepo.deleteByUser(user);
         usersRepo.delete(user);
-        return new DeleteResponse(
+        return new MessageResponse(
           " User Deleted Successfully :( "
         );
     }
@@ -262,7 +269,7 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         verificationTokenRepo.save(token);
 
         // Send email with token link
-        String verificationLink = "http://localhost:8080/api/v1/auth/verify-email?token=" + token;
+        String verificationLink = "http://localhost:8080/api/v1/auth/update-email/verify?token=" + token;
         String body = "Hello " + user.getFirstName() + ",\n\n" +
                 "Click the link to verify your account:\n" + verificationLink +
                 "\n\nIf you did not try to change your email , ignore this email.";
@@ -294,8 +301,6 @@ public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile fil
         verificationTokenRepo.save(token);
         return new UpdateEmailResponse("Email updated successfully" , user.getEmail());
     }
-
-
     //-------------------------------------------getAllUsers----------------------------------------------------------//
 
     public @Nullable List<Users> getAllUsers() {

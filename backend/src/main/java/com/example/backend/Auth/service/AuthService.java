@@ -20,16 +20,15 @@ public interface AuthService {
 
     GetProfileResponse getUserProfile(String email);
 
-    DeleteResponse DeleteCurrentUser(String email);
+    MessageResponse DeleteCurrentUser(String email);
 
     UpdateEmailRequest requestEmailUpdate(String currentEmail, String newEmail);
     UpdateEmailResponse verifyEmailUpdate(String tokenStr);
 
     JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq);
 
-    void sendResetPasswordEmail(ResetPasswordRequest resetPasswordRequest);
+    MessageResponse updatePassword(UpdatePasswordRequest request, String currentUserEmail);
 
-    void updatePassword(UpdatePasswordRequest updatePasswordRequest, String email);
 
     RegisterResponse verifyEmail(String token);
 

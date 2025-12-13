@@ -5,6 +5,7 @@ package com.example.backend.Auth.controller;
 import com.example.backend.Auth.dto.Requests.SignInRequest;
 import com.example.backend.Auth.dto.Requests.SignUpRequest;
 import com.example.backend.Auth.dto.Requests.UpdateEmailRequest;
+import com.example.backend.Auth.dto.Requests.UpdatePasswordRequest;
 import com.example.backend.Auth.dto.Responses.*;
 import com.example.backend.Auth.service.AuthService;
 import com.example.backend.entity.Users;
@@ -93,19 +94,20 @@ public class AuthController {
         return ResponseEntity.ok(resp);
     }
 
+
+
     //delete current user profile
     @DeleteMapping("/me")
-    public DeleteResponse DeleteCurrentUser(Authentication authentication){
+    public MessageResponse DeleteCurrentUser(Authentication authentication){
         String TokenEmail = authentication.getName();
-        DeleteResponse resp = authService.DeleteCurrentUser(TokenEmail);
+        MessageResponse resp = authService.DeleteCurrentUser(TokenEmail);
         return resp;
     }
 
 
-
+    // update email
     @PostMapping("/update-email")
-    public UpdateEmailRequest requestEmailUpdate(@RequestBody UpdateEmailRequest request,
-                                                     Authentication authentication) {
+    public UpdateEmailRequest requestEmailUpdate(@RequestBody UpdateEmailRequest request, Authentication authentication) {
         String currentEmail = authentication.getName();
         UpdateEmailRequest resp=authService.requestEmailUpdate(currentEmail, request.getNewEmail());
         return resp;
@@ -114,6 +116,15 @@ public class AuthController {
     @GetMapping("/update-email/verify")
     public UpdateEmailResponse verifyUpdatedEmail(@RequestParam String token) {
         UpdateEmailResponse resp = authService.verifyEmailUpdate(token);
+        return resp;
+    }
+
+
+    // update password
+    @PutMapping("/update-password")
+    public MessageResponse updatePassword(@RequestBody UpdatePasswordRequest request, Authentication authentication) {
+        String currentUserEmail = authentication.getName();
+        MessageResponse resp = authService.updatePassword(request, currentUserEmail);
         return resp;
     }
 

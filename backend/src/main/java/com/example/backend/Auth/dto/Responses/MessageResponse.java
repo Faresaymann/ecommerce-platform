@@ -1,12 +1,10 @@
 package com.example.backend.Auth.dto.Responses;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class DeleteResponse {
+public class MessageResponse {
     private String message;
 }
