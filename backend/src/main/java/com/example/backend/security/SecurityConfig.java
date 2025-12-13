@@ -1,6 +1,6 @@
 package com.example.backend.security;
 
-import com.example.backend.Auth.service.UsersServices;
+import com.example.backend.auth.service.UsersServices;
 import lombok.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -30,9 +30,12 @@ public class SecurityConfig {
     @Autowired
     private final AuthenticationConfiguration authenticationConfiguration;
 
+    @Autowired
+    private RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+
     // API endpoints with JWT
     @Bean
-    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain apiFilterChain(HttpSecurity http)  {
         return http
                 .securityMatcher("/api/**")  // only API endpoints
                 .csrf(csrf -> csrf.disable())
@@ -44,6 +47,7 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .build();
     }
     // Authentication provider for JWT login
