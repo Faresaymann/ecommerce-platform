@@ -2,10 +2,7 @@ package com.example.backend.auth.controller;
 //All endpoints (register, login, refresh, reset password, etc.)
 
 
-import com.example.backend.auth.dto.Requests.SignInRequest;
-import com.example.backend.auth.dto.Requests.SignUpRequest;
-import com.example.backend.auth.dto.Requests.UpdateEmailRequest;
-import com.example.backend.auth.dto.Requests.UpdatePasswordRequest;
+import com.example.backend.auth.dto.Requests.*;
 import com.example.backend.auth.dto.Responses.*;
 import com.example.backend.auth.service.AuthService;
 import com.example.backend.entity.Users;
@@ -128,6 +125,18 @@ public class AuthController {
         return resp;
     }
 
+    // forget password
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ForgetPasswordRequest> forgotPassword(@RequestBody Map<String,String> body) {
+        String email = body.get("email");
+        return ResponseEntity.ok(authService.forgotPassword(email));
+    }
+
+    // reset password
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPassword(request));
+    }
 
     // (dev endpoints for testing)
     @GetMapping("/dev/users")

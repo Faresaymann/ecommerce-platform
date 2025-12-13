@@ -1,5 +1,6 @@
 package com.example.backend.exception;
 
+import com.example.backend.auth.dto.Responses.MessageResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,18 @@ public class GlobalExceptionHandler {
                 "path", req.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(InvalidOtpException.class)
+    public ResponseEntity<?> handleInvalidOtp(InvalidOtpException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new MessageResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<?> handleTooManyRequests(TooManyRequestsException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new MessageResponse(ex.getMessage()));
     }
 
 

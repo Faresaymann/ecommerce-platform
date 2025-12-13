@@ -23,8 +23,11 @@ public interface AuthService {
     MessageResponse DeleteCurrentUser(String email);
 
     UpdateEmailRequest requestEmailUpdate(String currentEmail, String newEmail);
+
     UpdateEmailResponse verifyEmailUpdate(String tokenStr);
 
+    ForgetPasswordRequest forgotPassword(String email);
+    MessageResponse resetPassword(ResetPasswordRequest request);
     JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq);
 
     MessageResponse updatePassword(UpdatePasswordRequest request, String currentUserEmail);

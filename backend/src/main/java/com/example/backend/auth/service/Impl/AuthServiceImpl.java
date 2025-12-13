@@ -4,32 +4,32 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.example.backend.auth.dto.Requests.*;
 import com.example.backend.auth.dto.Responses.*;
-import com.example.backend.exception.AccountNotVerifiedException;
-import com.example.backend.exception.InvalidCredentialsException;
-import com.example.backend.exception.ResourceNotFoundException;
-import com.example.backend.exception.UserNotFoundException;
+import com.example.backend.exception.*;
+import com.example.backend.otp.OTP;
 import com.example.backend.auth.service.AuthService;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Users;
 import com.example.backend.entity.VerificationToken;
+import com.example.backend.otp.OTPRepository;
+import com.example.backend.repository.PasswordResetAttemptRepository;
 import com.example.backend.repository.UsersRepo;
 import com.example.backend.repository.VerificationTokenRepo;
+import com.example.backend.security.PasswordResetAttempt;
 import com.example.backend.util.EmailService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -44,7 +44,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JWTserviceImpl jwtService;
     private final Cloudinary cloudinary;
-
+    private final OTPRepository otpRepository;
+    private final PasswordResetAttemptRepository attemptRepo;
 
 
 
@@ -110,7 +111,7 @@ public class AuthServiceImpl implements AuthService {
 }
 
 
-    //---------------------------------------------------verifyEmail--------------------------------------------------//
+        //---------------------------------------------------verifyEmail--------------------------------------------------//
 
     @Override
     @Transactional
@@ -316,9 +317,73 @@ public class AuthServiceImpl implements AuthService {
     public @Nullable List<Users> getAllUsers() {
         return usersRepo.findAll();
     }
-    //-----------------------------------------------------------------------------------------------------//
+    //-------------------------------------------forgot-password----------------------------------------------------------//
+    @Transactional
+    @Override
+    public ForgetPasswordRequest forgotPassword(String currentEmail) {
+        Users user = usersRepo.findByEmail(currentEmail)
+                .orElseThrow(() -> new InvalidCredentialsException("User not found with email: " + currentEmail));
 
-//    public @Nullable Users findTokenByEmail(String email) {
-//        return usersRepo.findByEmail(email).orElseThrow();
-//    }
+        PasswordResetAttempt attempt =
+                attemptRepo.findByEmail(currentEmail)
+                        .orElse(new PasswordResetAttempt());
+
+        if (attempt.getAttempts() >= 3 &&
+                attempt.getLastAttempt().isAfter(LocalDateTime.now().minusHours(1))) {
+            throw new TooManyRequestsException("Too many reset attempts. Try again later.");
+        }
+
+        // Update attempts
+        attempt.setEmail(currentEmail);
+        attempt.setAttempts(attempt.getAttempts() + 1);
+        attempt.setLastAttempt(LocalDateTime.now());
+        attemptRepo.save(attempt);
+
+
+        // generate 6-digit OTP
+        String otp = String.format("%06d", new Random().nextInt(1_000_000));
+
+        // Optionally clean previous OTPs
+        otpRepository.deleteByUser(user);
+
+        // Save OTP in the database
+        OTP otpEntity = new OTP();
+        otpEntity.setUser(user);
+        otpEntity.setOtp(otp);
+        otpEntity.setExpiryDate(LocalDateTime.now().plusMinutes(15)); // OTP expiry time (15 minutes)
+        otpRepository.save(otpEntity);
+
+        // send email (do NOT include OTP in response)
+        String body = "Hello " + user.getFirstName() + ",\n\n" +
+                "Your password reset code (OTP) is: " + otp + "\n\n" +
+                "This code expires in 15 minutes.";
+        emailService.sendEmail(user.getEmail(), "Password Reset OTP", body);
+
+        return new ForgetPasswordRequest("OTP sent successfully. Please check your inbox." , otp);
+    }
+    //-------------------------------------------resetPassword----------------------------------------------------------//
+    @Transactional
+    public MessageResponse resetPassword(ResetPasswordRequest request) {
+        Users user = usersRepo.findByEmail(request.getEmail())
+                .orElseThrow(() -> new InvalidCredentialsException("User not found"));
+
+        OTP otpEntity = otpRepository.findByUserAndOtp(user, request.getOtp())
+                .orElseThrow(() -> new InvalidOtpException("Invalid OTP"));
+
+        if (otpEntity.getExpiryDate().isBefore(LocalDateTime.now())) {
+            otpRepository.delete(otpEntity);
+            throw new InvalidOtpException("OTP expired");
+        }
+
+
+        // update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        usersRepo.save(user);
+
+        // delete OTP after successful use
+        otpRepository.delete(otpEntity);
+
+        return new MessageResponse("Password reset successfully");
+    }
+
 }
