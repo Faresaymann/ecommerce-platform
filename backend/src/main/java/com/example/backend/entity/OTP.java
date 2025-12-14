@@ -1,6 +1,5 @@
-package com.example.backend.otp;
+package com.example.backend.entity;
 
-import com.example.backend.entity.Users;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

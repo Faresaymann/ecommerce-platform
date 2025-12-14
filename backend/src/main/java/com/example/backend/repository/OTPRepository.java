@@ -1,5 +1,6 @@
-package com.example.backend.otp;
+package com.example.backend.repository;
 
+import com.example.backend.entity.OTP;
 import com.example.backend.entity.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 

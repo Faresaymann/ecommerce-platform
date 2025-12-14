@@ -1,4 +1,4 @@
-package com.example.backend.security;
+package com.example.backend.auth.jwt;
 
 import com.example.backend.auth.service.JWTservice;
 import com.example.backend.auth.service.UsersServices;

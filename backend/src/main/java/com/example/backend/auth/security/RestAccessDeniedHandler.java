@@ -1,4 +1,4 @@
-package com.example.backend.security;
+package com.example.backend.auth.security;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;

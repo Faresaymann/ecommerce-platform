@@ -5,16 +5,16 @@ import com.cloudinary.utils.ObjectUtils;
 import com.example.backend.auth.dto.Requests.*;
 import com.example.backend.auth.dto.Responses.*;
 import com.example.backend.exception.*;
-import com.example.backend.otp.OTP;
+import com.example.backend.entity.OTP;
 import com.example.backend.auth.service.AuthService;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Users;
 import com.example.backend.entity.VerificationToken;
-import com.example.backend.otp.OTPRepository;
+import com.example.backend.repository.OTPRepository;
 import com.example.backend.repository.PasswordResetAttemptRepository;
 import com.example.backend.repository.UsersRepo;
 import com.example.backend.repository.VerificationTokenRepo;
-import com.example.backend.security.PasswordResetAttempt;
+import com.example.backend.entity.PasswordResetAttempt;
 import com.example.backend.util.EmailService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -49,18 +49,15 @@ public class AuthServiceImpl implements AuthService {
 
 
 
+    //---------------------------------------------------register--------------------------------------------------//
 
-
-   //---------------------------------------------------register--------------------------------------------------//
     @Override
     @Transactional
     public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException {
     // check if email already exists
-    if (usersRepo.findByEmail(signUpRequest.getEmail()).isPresent()) {
-        System.out.println("Email already in use");
-        return new RegisterResponse("Email already in use");
-    }
-
+        if (usersRepo.findByEmail(signUpRequest.getEmail()).isPresent()) {
+            throw new EmailAlreadyUsedException("The new email is already in use.");
+        }
     // create new user
     Users user = Users.builder()
             .firstName(signUpRequest.getFirstName())
@@ -110,17 +107,16 @@ public class AuthServiceImpl implements AuthService {
     return new RegisterResponse("User registered. Please check your email for verification." ,token);
 }
 
-
-        //---------------------------------------------------verifyEmail--------------------------------------------------//
+    //---------------------------------------------------verifyEmail--------------------------------------------------//
 
     @Override
     @Transactional
-    public RegisterResponse verifyEmail(String token) {
+    public MessageResponse verifyEmail(String token) {
         VerificationToken verificationToken = verificationTokenRepo.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
 
         if (verificationToken.isUsed() || verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            return new RegisterResponse("Token invalid or expired");
+            return new MessageResponse("Token invalid or expired");
         }
 
         Users user = verificationToken.getUser();
@@ -130,7 +126,7 @@ public class AuthServiceImpl implements AuthService {
         verificationToken.setUsed(true);
         verificationTokenRepo.save(verificationToken);
 
-        return new RegisterResponse("Email verified successfully!");
+        return new MessageResponse("Email verified successfully!");
     }
 
     //----------------------------------------------------login-------------------------------------------------//
@@ -169,17 +165,28 @@ public class AuthServiceImpl implements AuthService {
     //-------------------------------------------------refreshToken----------------------------------------------------//
     @Override
     public JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq) {
-        String userEmail = jwtService.extractUsername(refreshTokenReq.getToken());
-        Users user = usersRepo.findByEmail(userEmail).orElseThrow();
-
-        if (jwtService.validateToken(refreshTokenReq.getToken(), user)) {
-            String jwt = jwtService.generateToken(user);
-            JwtAuthenticationResponse response = new JwtAuthenticationResponse();
-            response.setToken(jwt);
-            response.setRefreshToken(refreshTokenReq.getToken());
-            return response;
+        String userEmail;
+        try {
+            userEmail = jwtService.extractUsername(refreshTokenReq.getToken());
+        } catch (Exception ex) {
+            throw new InvalidTokenException("Invalid refresh token");
         }
-        return null;
+
+        Users user = usersRepo.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+
+        // Validate token
+        if (!jwtService.validateToken(refreshTokenReq.getToken(), user)) {
+            throw new InvalidTokenException("Refresh token is invalid or expired");
+        }
+
+        // Generate new JWT
+        String jwt = jwtService.generateToken(user);
+
+        JwtAuthenticationResponse response = new JwtAuthenticationResponse();
+        response.setToken(jwt);
+        response.setRefreshToken(refreshTokenReq.getToken());
+        return response;
     }
 
     //-----------------------------------------------updatePassword------------------------------------------------------//
@@ -188,7 +195,7 @@ public class AuthServiceImpl implements AuthService {
     public MessageResponse updatePassword(UpdatePasswordRequest request, String currentUserEmail) {
 
         Users user = usersRepo.findByEmail(currentUserEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         // Check old password
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
@@ -207,7 +214,7 @@ public class AuthServiceImpl implements AuthService {
     public UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, MultipartFile file) throws IOException {
 
         Users user = usersRepo.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         // Update special fields only if present
         if (firstName != null) user.setFirstName(firstName);
@@ -239,7 +246,7 @@ public class AuthServiceImpl implements AuthService {
     //-------------------------------------------------getUserProfile----------------------------------------------------//
     public GetProfileResponse getUserProfile(String email) {
         Users user = usersRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
 
         return new GetProfileResponse(
                 user.getEmail(),
@@ -254,7 +261,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public MessageResponse DeleteCurrentUser(String email) {
         Users user = usersRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
         verificationTokenRepo.deleteByUser(user);
         usersRepo.delete(user);
         return new MessageResponse(
@@ -262,13 +269,16 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
-
     //-------------------------------------------requestEmailUpdate----------------------------------------------------------//
     @Transactional
     public UpdateEmailRequest requestEmailUpdate(String currentEmail, String newEmail) {
         Users user = usersRepo.findByEmail(currentEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        // Check if new email is already in use
+        if (usersRepo.findByEmail(newEmail).isPresent()) {
+            throw new EmailAlreadyUsedException("The new email is already in use.");
+        }
         // Generate verification token
         VerificationToken token = verificationTokenRepo.findByUser(user)
                 .orElse(new VerificationToken());
@@ -299,10 +309,13 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public UpdateEmailResponse verifyEmailUpdate(String tokenStr) {
         VerificationToken token = verificationTokenRepo.findByToken(tokenStr)
-                .orElseThrow(() -> new RuntimeException("Invalid token"));
+                .orElseThrow(() -> new InvalidTokenException("The verification token is invalid or expired."));
 
-        if (token.isUsed() || token.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expired or already used");
+        if (token.isUsed()) {
+            throw new InvalidTokenException("This token has already been used.");
+        }
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new InvalidTokenException("This token has expired.");
         }
 
         Users user = token.getUser();
@@ -320,7 +333,7 @@ public class AuthServiceImpl implements AuthService {
     //-------------------------------------------forgot-password----------------------------------------------------------//
     @Transactional
     @Override
-    public ForgetPasswordRequest forgotPassword(String currentEmail) {
+    public ForgetPasswordResponse forgotPassword(String currentEmail) {
         Users user = usersRepo.findByEmail(currentEmail)
                 .orElseThrow(() -> new InvalidCredentialsException("User not found with email: " + currentEmail));
 
@@ -359,7 +372,7 @@ public class AuthServiceImpl implements AuthService {
                 "This code expires in 15 minutes.";
         emailService.sendEmail(user.getEmail(), "Password Reset OTP", body);
 
-        return new ForgetPasswordRequest("OTP sent successfully. Please check your inbox." , otp);
+        return new ForgetPasswordResponse("OTP sent successfully. Please check your inbox." , otp);
     }
     //-------------------------------------------resetPassword----------------------------------------------------------//
     @Transactional

@@ -1,7 +1,7 @@
 package com.example.backend.repository;
 
 
-import com.example.backend.security.PasswordResetAttempt;
+import com.example.backend.entity.PasswordResetAttempt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

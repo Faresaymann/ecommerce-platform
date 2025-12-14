@@ -3,11 +3,13 @@ package com.example.backend.auth.service;
 import com.example.backend.auth.dto.Requests.*;
 import com.example.backend.auth.dto.Responses.*;
 import com.example.backend.entity.Users;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
 
+@Component
 public interface AuthService {
 
     //Users register(SignUpRequest signUpRequest);
@@ -26,14 +28,14 @@ public interface AuthService {
 
     UpdateEmailResponse verifyEmailUpdate(String tokenStr);
 
-    ForgetPasswordRequest forgotPassword(String email);
+    ForgetPasswordResponse forgotPassword(String email);
     MessageResponse resetPassword(ResetPasswordRequest request);
     JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq);
 
     MessageResponse updatePassword(UpdatePasswordRequest request, String currentUserEmail);
 
 
-    RegisterResponse verifyEmail(String token);
+    MessageResponse verifyEmail(String token);
 
 
     //dev only for testing
