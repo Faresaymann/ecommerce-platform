@@ -1,4 +1,4 @@
-package com.example.backend.exception;
+package com.example.backend.auth.exception;
 
 public class InvalidOtpException extends RuntimeException {
     public InvalidOtpException(String message) {

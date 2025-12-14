@@ -5,6 +5,7 @@ package com.example.backend.auth.controller;
 import com.example.backend.auth.dto.Requests.*;
 import com.example.backend.auth.dto.Responses.*;
 import com.example.backend.auth.service.AuthService;
+import com.example.backend.entity.Role;
 import com.example.backend.entity.Users;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -37,19 +38,13 @@ public class AuthController {
             @RequestParam String lastName,
             @RequestParam String email,
             @RequestParam String password,
+            @RequestParam Role role,
             @RequestPart(value = "file", required = false) MultipartFile file) throws IOException {
 
-        SignUpRequest dto = new SignUpRequest(firstName, lastName, email, password);
-        RegisterResponse resp = authService.register(dto, file);
-        if ("Email already in use".equalsIgnoreCase(resp.getMessage())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(resp);
-        } else if (resp.getMessage().toLowerCase().contains("failed")) {
-            // image upload error or email sending error — treat as 500
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
-        } else {
-            return ResponseEntity.status(HttpStatus.CREATED).body(resp);
-        }
+        SignUpRequest dto = new SignUpRequest(firstName, lastName, email, password, role);
+        RegisterResponse response = authService.register(dto, file);
 
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 

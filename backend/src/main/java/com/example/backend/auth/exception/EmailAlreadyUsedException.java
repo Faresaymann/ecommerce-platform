@@ -1,4 +1,4 @@
-package com.example.backend.exception;
+package com.example.backend.auth.exception;
 
 public class EmailAlreadyUsedException extends RuntimeException {
     public EmailAlreadyUsedException(String message) {

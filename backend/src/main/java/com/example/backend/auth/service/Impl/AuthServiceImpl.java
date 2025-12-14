@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.example.backend.auth.dto.Requests.*;
 import com.example.backend.auth.dto.Responses.*;
+import com.example.backend.auth.exception.*;
 import com.example.backend.exception.*;
 import com.example.backend.entity.OTP;
 import com.example.backend.auth.service.AuthService;
@@ -58,12 +59,14 @@ public class AuthServiceImpl implements AuthService {
         if (usersRepo.findByEmail(signUpRequest.getEmail()).isPresent()) {
             throw new EmailAlreadyUsedException("The new email is already in use.");
         }
+        // Determine role: default to USER if null
+        Role userRole = signUpRequest.getRole() != null ? signUpRequest.getRole() : Role.ROLE_USER;
     // create new user
     Users user = Users.builder()
             .firstName(signUpRequest.getFirstName())
             .lastName(signUpRequest.getLastName())
             .email(signUpRequest.getEmail())
-            .role(Role.ROLE_USER)
+            .role(userRole)
             .password(passwordEncoder.encode(signUpRequest.getPassword()))
             .enabled(false) // inactive until verified
             .createdAt(LocalDateTime.now())
@@ -97,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
     verificationTokenRepo.save(verificationToken);
 
 
-    // send verification email ( change the URL depending on your deployment(frontend(3000) or backend(8080)) )
+    // send verification email (change the URL depending on your deployment(frontend(3000) or backend(8080)) )
     String verificationLink = "http://localhost:8080/api/v1/auth/verify-email?token=" + token;
     String body = "Hello " + user.getFirstName() + ",\n\n" +
             "Click the link to verify your account:\n" + verificationLink +
@@ -158,7 +161,8 @@ public class AuthServiceImpl implements AuthService {
             user.getEmail(),
             user.getFirstName(),
             user.getLastName(),
-            user.getProfileImageUrl()
+            user.getProfileImageUrl(),
+            user.getRole()
         );
     }
 
@@ -275,7 +279,7 @@ public class AuthServiceImpl implements AuthService {
         Users user = usersRepo.findByEmail(currentEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Check if new email is already in use
+        // Check if a new email is already in use
         if (usersRepo.findByEmail(newEmail).isPresent()) {
             throw new EmailAlreadyUsedException("The new email is already in use.");
         }

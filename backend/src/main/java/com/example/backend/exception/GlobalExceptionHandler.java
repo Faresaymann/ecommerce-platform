@@ -1,6 +1,11 @@
 package com.example.backend.exception;
 
+import com.example.backend.Category.exception.*;
 import com.example.backend.auth.dto.Responses.MessageResponse;
+import com.example.backend.auth.exception.AccountNotVerifiedException;
+import com.example.backend.auth.exception.EmailAlreadyUsedException;
+import com.example.backend.auth.exception.InvalidCredentialsException;
+import com.example.backend.auth.exception.InvalidOtpException;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -10,11 +15,42 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // ----------------- Category module exceptions -----------------
+
+    @ExceptionHandler(CategoryNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCategoryNotFound(CategoryNotFoundException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 404,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Not Found"
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler({
+            CategoryAlreadyExistsException.class,
+            InvalidCategoryException.class,
+            CategoryUpdateException.class,
+            CategoryDeletionException.class
+    })
+    public ResponseEntity<Map<String, Object>> handleCategoryBusinessExceptions(RuntimeException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 409,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Conflict"
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+
+
 
     @ExceptionHandler(EmailAlreadyUsedException.class)
     public ResponseEntity<Map<String, Object>> handleEmailAlreadyUsedException(EmailAlreadyUsedException ex) {
