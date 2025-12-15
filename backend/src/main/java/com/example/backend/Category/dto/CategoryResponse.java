@@ -2,6 +2,7 @@ package com.example.backend.Category.dto;
 
 
 
+import com.example.backend.Product.dto.ProductResponse;
 import lombok.*;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class CategoryResponse {
     private Long parentId;
     private String parentName;
     private List<CategoryResponse> subCategories; // nested children
+    private List<ProductResponse> products; // products in this category
 
 }
 

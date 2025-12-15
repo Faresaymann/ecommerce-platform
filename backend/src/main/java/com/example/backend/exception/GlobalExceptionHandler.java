@@ -1,6 +1,7 @@
 package com.example.backend.exception;
 
 import com.example.backend.Category.exception.*;
+import com.example.backend.Product.exception.*;
 import com.example.backend.auth.dto.Responses.MessageResponse;
 import com.example.backend.auth.exception.AccountNotVerifiedException;
 import com.example.backend.auth.exception.EmailAlreadyUsedException;
@@ -20,7 +21,83 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // ----------------- Category module exceptions -----------------
+
+    // ----------------- Product module exceptions ----------------- //
+
+    // check if the product exists when Searching
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleProductNotFound(ProductNotFoundException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 404,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Not Found"
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    // check if the product Already exists
+    @ExceptionHandler(ProductAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleProductAlreadyExists(ProductAlreadyExistsException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 409,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Conflict"
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    // check if product cardinalities are valid
+    @ExceptionHandler(InvalidProductException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidProduct(InvalidProductException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 400,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Bad Request"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    // check if the product is active
+    @ExceptionHandler(ProductInactiveException.class)
+    public ResponseEntity<Map<String, Object>> handleProductInactive(ProductInactiveException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 403,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Forbidden"
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    // check if a product is in stock
+    @ExceptionHandler(ProductOutOfStockException.class)
+    public ResponseEntity<Map<String, Object>> handleProductOutOfStock(ProductOutOfStockException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 409,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Conflict"
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    // Check if the user owns the product
+    @ExceptionHandler(ProductOwnershipException.class)
+    public ResponseEntity<Map<String,Object>> handleOwnership(ProductOwnershipException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 403,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Forbidden"
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+
+    // ----------------- Category module exceptions ----------------- //
 
     @ExceptionHandler(CategoryNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleCategoryNotFound(CategoryNotFoundException ex) {
@@ -33,12 +110,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
-    @ExceptionHandler({
-            CategoryAlreadyExistsException.class,
-            InvalidCategoryException.class,
-            CategoryUpdateException.class,
-            CategoryDeletionException.class
-    })
+    @ExceptionHandler({CategoryAlreadyExistsException.class, InvalidCategoryException.class, CategoryUpdateException.class, CategoryDeletionException.class})
     public ResponseEntity<Map<String, Object>> handleCategoryBusinessExceptions(RuntimeException ex) {
         Map<String, Object> body = Map.of(
                 "status", 409,
@@ -50,7 +122,7 @@ public class GlobalExceptionHandler {
     }
 
 
-
+    // ----------------- Auth module exceptions ----------------- //
 
     @ExceptionHandler(EmailAlreadyUsedException.class)
     public ResponseEntity<Map<String, Object>> handleEmailAlreadyUsedException(EmailAlreadyUsedException ex) {
@@ -113,7 +185,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccountNotVerifiedException.class)
     public ResponseEntity<?> handleAccountNotVerified(AccountNotVerifiedException ex) {
-        // Maybe 403 or 401 depending on your semantics; using 403 here
         return build(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
@@ -125,7 +196,7 @@ public class GlobalExceptionHandler {
     // fallback - catches everything else
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAll(Exception ex) {
-        ex.printStackTrace(); // optional: server logs
+        ex.printStackTrace(); // server logs
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong: " + ex.getMessage());
     }
 

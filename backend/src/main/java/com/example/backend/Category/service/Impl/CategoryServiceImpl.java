@@ -6,6 +6,8 @@ import com.example.backend.Category.entity.Category;
 import com.example.backend.Category.exception.*;
 import com.example.backend.Category.repository.CategoryRepository;
 import com.example.backend.Category.service.CategoryService;
+import com.example.backend.Product.dto.ProductResponse;
+import com.example.backend.Product.repository.ProductRepository;
 import com.example.backend.auth.dto.Responses.MessageResponse;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     //---------------------------------------------------createCategory--------------------------------------------------//
     @Override
@@ -126,7 +129,11 @@ public class CategoryServiceImpl implements CategoryService {
             throw new CategoryDeletionException("Cannot delete category that has subcategories.");
         }
 
-        // TODO: check for linked products before delete here
+        // Check for linked products
+        if (productRepository.existsByCategory(category)) {
+            throw new CategoryDeletionException("Cannot delete category that has products linked to it.");
+        }
+
         categoryRepository.deleteById(id);
         return new MessageResponse("Category deleted successfully");
     }
@@ -144,6 +151,22 @@ public class CategoryServiceImpl implements CategoryService {
                 .map(sub -> mapToResponse((Category) sub, ""))
                 .collect(Collectors.toList());
 
+        List<ProductResponse> products = c.getProducts() != null
+                ? c.getProducts().stream()
+                .map(p -> ProductResponse.builder()
+                        .id(p.getId())
+                        .name(p.getName())
+                        .description(p.getDescription())
+                        .price(p.getPrice())
+                        .stock(p.getStock())
+                        .active(p.getActive())
+                        .imageUrl(p.getImageUrl())
+                        .categoryId(c.getId())
+                        .categoryName(c.getName())
+                        .build())
+                .collect(Collectors.toList())
+                : Collections.emptyList();
+
         return CategoryResponse.builder()
                 .message(message)
                 .id(c.getId())
@@ -152,6 +175,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .parentId(parentId)
                 .parentName(parentName)
                 .subCategories(subCat)
+                .products(products)
                 .build();
     }
 }

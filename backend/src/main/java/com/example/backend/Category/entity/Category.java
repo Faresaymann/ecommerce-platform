@@ -1,5 +1,6 @@
 package com.example.backend.Category.entity;
 
+import com.example.backend.Product.entity.Product;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -42,8 +43,7 @@ public class Category {
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
     private List<Category> subCategories = new ArrayList<>(); // list of children categories
 
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Product> products = new ArrayList<>(); // list of products in this category
+
 }
