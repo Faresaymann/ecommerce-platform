@@ -2,6 +2,7 @@ package com.example.backend.exception;
 
 import com.example.backend.Category.exception.*;
 import com.example.backend.Product.exception.*;
+import com.example.backend.Wishlist.exception.WishlistNotFoundException;
 import com.example.backend.auth.dto.Responses.MessageResponse;
 import com.example.backend.auth.exception.AccountNotVerifiedException;
 import com.example.backend.auth.exception.EmailAlreadyUsedException;
@@ -20,6 +21,22 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+
+    // ----------------- Wishlist module exceptions ----------------- //
+
+    @ExceptionHandler(WishlistNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleWishlistNotFound(WishlistNotFoundException ex) {
+
+        Map<String, Object> body = Map.of(
+                "status", 404,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Not Found"
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
 
 
     // ----------------- Product module exceptions ----------------- //
