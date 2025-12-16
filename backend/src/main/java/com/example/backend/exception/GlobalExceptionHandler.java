@@ -1,6 +1,10 @@
 package com.example.backend.exception;
 
 import com.example.backend.Category.exception.*;
+import com.example.backend.Order.exception.InsufficientStockException;
+import com.example.backend.Order.exception.OrderAlreadyPaidException;
+import com.example.backend.Order.exception.OrderCancellationException;
+import com.example.backend.Order.exception.OrderNotFoundException;
 import com.example.backend.Product.exception.*;
 import com.example.backend.Wishlist.exception.WishlistNotFoundException;
 import com.example.backend.auth.dto.Responses.MessageResponse;
@@ -21,6 +25,54 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // ----------------- Order module exceptions ----------------- //
+
+    // check if the order exists when searching
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleOrderNotFound(OrderNotFoundException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 404,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Not Found"
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+    // check stock of the product match the quantity in the order
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientStock(InsufficientStockException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 400,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Bad Request"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+    //  check if the order is already paid
+    @ExceptionHandler(OrderAlreadyPaidException.class)
+    public ResponseEntity<Map<String, Object>> handleOrderAlreadyPaid(OrderAlreadyPaidException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 400,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Bad Request"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    // check if the order is already cancelled
+    @ExceptionHandler(OrderCancellationException.class)
+    public ResponseEntity<Map<String, Object>> handleOrderCancellation(OrderCancellationException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 400,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Bad Request"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
 
 
     // ----------------- Wishlist module exceptions ----------------- //
