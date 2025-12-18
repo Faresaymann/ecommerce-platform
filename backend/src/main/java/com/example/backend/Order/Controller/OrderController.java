@@ -117,9 +117,5 @@ public class OrderController {
         return ResponseEntity.ok(new MessageResponse("Order cancelled."));
     }
 
-    // keep placeholder until PaymentService exists;
-    // @PostMapping("/{id}/pay")
-    // public ResponseEntity<?> pay(@PathVariable Long id, @Valid @RequestBody PayRequest req,Authentication authentication) {}
-
 
 }

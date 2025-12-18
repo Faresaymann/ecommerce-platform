@@ -3,10 +3,9 @@ package com.example.backend.Order.entity;
 
 public enum OrderStatus {
     CREATED,
-    CONFIRMED,
-    PAID,
-    SHIPPED,
     DELIVERED,
+    PAID,
     CANCELLED,
+    FAILED,
     REFUNDED
 }

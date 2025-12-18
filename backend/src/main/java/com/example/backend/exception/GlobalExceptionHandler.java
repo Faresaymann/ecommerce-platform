@@ -1,30 +1,80 @@
 package com.example.backend.exception;
 
 import com.example.backend.Category.exception.*;
-import com.example.backend.Order.exception.InsufficientStockException;
-import com.example.backend.Order.exception.OrderAlreadyPaidException;
-import com.example.backend.Order.exception.OrderCancellationException;
-import com.example.backend.Order.exception.OrderNotFoundException;
+import com.example.backend.Order.exception.*;
 import com.example.backend.Product.exception.*;
 import com.example.backend.Wishlist.exception.WishlistNotFoundException;
 import com.example.backend.auth.dto.Responses.MessageResponse;
-import com.example.backend.auth.exception.AccountNotVerifiedException;
-import com.example.backend.auth.exception.EmailAlreadyUsedException;
-import com.example.backend.auth.exception.InvalidCredentialsException;
-import com.example.backend.auth.exception.InvalidOtpException;
+import com.example.backend.auth.exception.*;
+import com.example.backend.payment.exception.*;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // ----------------- Payment module exceptions ----------------- //
+
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<Map<String, Object>> handleGenericPayment(PaymentException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 400,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Payment Error"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(StripeOperationException.class)
+    public ResponseEntity<Map<String, Object>> handleStripeOperation(StripeOperationException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 502,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Bad Gateway"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
+    }
+
+    @ExceptionHandler(PaymentNotCompletedException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentNotCompleted(PaymentNotCompletedException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 409,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Conflict"
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(OrderPaymentNotAllowedException.class)
+    public ResponseEntity<Map<String, Object>> handleOrderPaymentNotAllowed(OrderPaymentNotAllowedException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 400,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Bad Request"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentNotFound(PaymentNotFoundException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 404,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Not Found"
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
 
     // ----------------- Order module exceptions ----------------- //
 

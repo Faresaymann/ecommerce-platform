@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Processing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 80px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>⏳ Payment is being processed</h2>
+<p>Please wait while we confirm your payment.</p>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+
+    if (!sessionId) {
+        document.body.innerHTML = "<h3>❌ Invalid payment session</h3>";
+    }
+</script>
+
+</body>
+</html>
+

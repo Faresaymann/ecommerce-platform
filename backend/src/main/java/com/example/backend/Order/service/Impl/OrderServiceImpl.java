@@ -162,7 +162,6 @@ public class OrderServiceImpl implements OrderService {
 
         // business rule check
         if (order.getStatus() == OrderStatus.PAID
-                || order.getStatus() == OrderStatus.SHIPPED
                 || order.getStatus() == OrderStatus.DELIVERED) {
             throw new OrderCancellationException("Order cannot be cancelled at this stage");
         }
