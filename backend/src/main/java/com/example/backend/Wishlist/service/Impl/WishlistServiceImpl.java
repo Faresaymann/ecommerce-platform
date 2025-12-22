@@ -29,7 +29,15 @@ public class WishlistServiceImpl implements WishlistService {
     private final UsersRepo usersRepository;
 
 
-    //---------------------------------------------------addToWishlist--------------------------------------------------//
+
+
+    /**
+     * Add a product to the user's wishlist.
+     *
+     * @param userEmail the email of the authenticated user
+     * @param productId UUID of the product to add
+     * @return the updated wishlist
+     */
     @Override
     @Transactional
     public WishlistResponse addToWishlist(String userEmail, UUID productId) {
@@ -56,8 +64,17 @@ public class WishlistServiceImpl implements WishlistService {
 
         return mapToWishlistResponse(wishlist);
     }
-    //---------------------------------------------------removeFromWishlist--------------------------------------------------//
 
+
+
+
+    /**
+     * Remove a product from the user's wishlist.
+     *
+     * @param userEmail the email of the authenticated user
+     * @param productId UUID of the product to remove
+     * @return the updated wishlist
+     */
     @Override
     @Transactional
     public WishlistResponse removeFromWishlist(String userEmail, UUID productId) {
@@ -72,8 +89,15 @@ public class WishlistServiceImpl implements WishlistService {
 
         return mapToWishlistResponse(wishlist);
     }
-    //---------------------------------------------------getWishlist--------------------------------------------------//
 
+
+
+    /**
+     * Retrieve the wishlist of a user.
+     *
+     * @param userEmail the email of the authenticated user
+     * @return the wishlist
+     */
     @Override
     @Transactional(readOnly = true)
     public WishlistResponse getWishlist(String userEmail) {
@@ -89,8 +113,15 @@ public class WishlistServiceImpl implements WishlistService {
 
         return mapToWishlistResponse(wishlist);
     }
-    //---------------------------------------------------clearWishlist--------------------------------------------------//
 
+
+
+    /**
+     * Clear all products from the user's wishlist.
+     *
+     * @param userEmail the email of the authenticated user
+     * @return the empty wishlist
+     */
     @Override
     public WishlistResponse clearWishlist(String userEmail) {
         Users user = usersRepository.findByEmail(userEmail)
