@@ -35,7 +35,13 @@ public class OrderServiceImpl implements OrderService {
     private final UsersRepo usersRepo;
 
 
-    //---------------------------------------------------createOrderFromCart--------------------------------------------------//
+    /**
+     * Create an order from the user's cart and clear the cart.
+     *
+     * @param userEmail       email of the authenticated user
+     * @param shippingAddress shipping address for the order
+     * @return the created Order
+     */
     @Override
     @Transactional
     public Order createOrderFromCart(String userEmail, String shippingAddress) {
@@ -82,7 +88,18 @@ public class OrderServiceImpl implements OrderService {
 
         return saved;
     }
-    //---------------------------------------------------createDirectOrder--------------------------------------------------//
+
+
+
+    /**
+     * Create a direct order for a specific product and quantity.
+     *
+     * @param userEmail       email of the authenticated user
+     * @param productId       UUID of the product
+     * @param quantity        quantity to order
+     * @param shippingAddress shipping address for the order
+     * @return the created Order
+     */
     @Override
     @Transactional
     public Order createDirectOrder(String userEmail, UUID productId, int quantity, String shippingAddress) {
@@ -126,7 +143,15 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.save(order);
     }
 
-    //---------------------------------------------------getOrderById--------------------------------------------------//
+
+
+    /**
+     * Retrieve a specific order by its ID for a user.
+     *
+     * @param id        order ID
+     * @param userEmail email of the authenticated user
+     * @return the found Order
+     */
     @Override
     public Order getOrderById(Long id, String userEmail) {
         Order order = orderRepository.findById(id)
@@ -137,7 +162,16 @@ public class OrderServiceImpl implements OrderService {
         return order;
     }
 
-    //---------------------------------------------------getOrdersForUser--------------------------------------------------//
+
+
+    /**
+     * Retrieve paginated orders for a specific user.
+     *
+     * @param userEmail email of the authenticated user
+     * @param pageable  pagination information
+     * @return paginated orders
+     */
+    @SuppressWarnings("NullableProblems")
     @Override
     public Page<Order> getOrdersForUser(String userEmail, Pageable pageable) {
         Users user = usersRepo.findByEmail(userEmail).orElseThrow(
@@ -146,8 +180,16 @@ public class OrderServiceImpl implements OrderService {
 
         return orderRepository.findAllByUser(user, pageable);
     }
-    //---------------------------------------------------cancelOrder--------------------------------------------------//
 
+
+
+
+    /**
+     * Cancel an order if allowed by business rules and restore stock.
+     *
+     * @param orderId   ID of the order to cancel
+     * @param userEmail email of the authenticated user
+     */
     @Override
     @Transactional
     public void cancelOrder(Long orderId, String userEmail) {

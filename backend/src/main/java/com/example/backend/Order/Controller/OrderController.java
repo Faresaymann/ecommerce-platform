@@ -22,6 +22,7 @@ import org.springframework.security.core.Authentication;
 
 
 
+@SuppressWarnings("ALL")
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
