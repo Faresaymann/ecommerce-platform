@@ -24,7 +24,16 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
 
-    //---------------------------------------------------createCategory--------------------------------------------------//
+
+
+    /**
+     * Create a new category.
+     *
+     * @param request the {@link CategoryRequest} containing name, description, and optional parentId
+     * @return the created {@link CategoryResponse} with a success message
+     * @throws CategoryAlreadyExistsException if a category with the same name already exists
+     * @throws InvalidCategoryException if parentId is invalid
+     */
     @Override
     public CategoryResponse createCategory(CategoryRequest request) {
         if (categoryRepository.existsByNameIgnoreCase(request.getName().trim())) {
@@ -46,7 +55,15 @@ public class CategoryServiceImpl implements CategoryService {
         return mapToResponse(category, "Category created successfully");
     }
 
-    //---------------------------------------------------getCategoryById--------------------------------------------------//
+
+
+    /**
+     * Get a category by its ID.
+     *
+     * @param id the ID of the category
+     * @return the {@link CategoryResponse} for the requested category
+     * @throws CategoryNotFoundException if the category does not exist
+     */
     @Override
     @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long id) {
@@ -55,7 +72,13 @@ public class CategoryServiceImpl implements CategoryService {
         return mapToResponse(category , "Category found successfully");
     }
 
-    //---------------------------------------------------getAllCategories--------------------------------------------------//
+
+
+    /**
+     * Get all root categories and their subcategories recursively.
+     *
+     * @return a list of {@link CategoryResponse} objects representing root categories
+     */    @SuppressWarnings("SimplifyStreamApiCallChains")
     @Override
     @Transactional(readOnly = true)
     public List<CategoryResponse> getAllCategories() {
@@ -71,8 +94,21 @@ public class CategoryServiceImpl implements CategoryService {
                 .map(c -> mapToResponse(c, "")) // empty message for listing
                 .collect(Collectors.toList());
     }
-    //---------------------------------------------------updateCategory--------------------------------------------------//
-    @Override
+
+
+
+
+
+    /**
+     * Update an existing category.
+     *
+     * @param id the ID of the category to update
+     * @param request the {@link CategoryRequest} with updated data
+     * @return the updated {@link CategoryResponse}
+     * @throws CategoryNotFoundException if category does not exist
+     * @throws CategoryUpdateException if the name conflicts with another category
+     * @throws InvalidCategoryException if parentId is invalid or causes a cycle
+     */    @Override
     public CategoryResponse updateCategory(Long id, CategoryRequest request) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new CategoryNotFoundException("Category not found with id " + id));
@@ -117,8 +153,18 @@ public class CategoryServiceImpl implements CategoryService {
         return mapToResponse(category, "Category updated successfully");
 
     }
-    //---------------------------------------------------deleteCategory--------------------------------------------------//
-    @Override
+
+
+
+
+    /**
+     * Delete a category by ID.
+     *
+     * @param id the ID of the category to delete
+     * @return a {@link MessageResponse} confirming deletion
+     * @throws CategoryNotFoundException if category does not exist
+     * @throws CategoryDeletionException if category has subcategories or linked products
+     */    @Override
     public MessageResponse deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new CategoryNotFoundException("Category not found with id " + id));
@@ -138,9 +184,16 @@ public class CategoryServiceImpl implements CategoryService {
         return new MessageResponse("Category deleted successfully");
     }
 
-    //---------------------------------------------------mapToResponse--------------------------------------------------//
 
-    // --- helper mapper --- //
+
+
+    /**
+     * Map a Category entity to {@link CategoryResponse}, including subcategories and products.
+     *
+     * @param c the category entity
+     * @param message optional message
+     * @return the {@link CategoryResponse} representing the category
+     */
     private CategoryResponse mapToResponse(Category c, String message) {
         Long parentId = c.getParent() != null ? c.getParent().getId() : null;
         String parentName = c.getParent() != null ? c.getParent().getName() : null;
