@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 
 import lombok.extern.slf4j.Slf4j;
 
+@SuppressWarnings("ALL")
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -110,7 +111,7 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = new Payment(order.getId(), session.getId());
         payment.setStatus(Payment.Status.CREATED);
         payment.setCreatedAt(OffsetDateTime.now());
-        payment.setExpiresAt(payment.getCreatedAt().plusMinutes(60)); // TTL = 60 minutes (after that the transaction will be cancelled)
+        payment.setExpiresAt(payment.getCreatedAt().plusMinutes(60)); // TTL = 60 minutes (after that the transaction will be canceled)
         paymentRepository.save(payment);
 
         order.setStatus(OrderStatus.DELIVERED); // to avoid confusion (BE happy: D)
@@ -202,8 +203,8 @@ public class PaymentServiceImpl implements PaymentService {
 
             // application_fee_amount is in cents (Long) when using Connect
             if (finalPi != null) {
-                Long applicationFee = finalPi.getApplicationFeeAmount(); // may be null
-                Long amount = finalPi.getAmount(); // total amount in cents
+                Long applicationFee = finalPi.getApplicationFeeAmount(); // maybe null
+                Long amount = finalPi.getAmount(); // total number in cents
 
                 // sellerStripeAccountId -> transfer_data.destination
                 if (finalPi.getTransferData() != null) {
@@ -276,7 +277,7 @@ public class PaymentServiceImpl implements PaymentService {
             com.stripe.param.RefundCreateParams.Builder builder = com.stripe.param.RefundCreateParams.builder()
                     .setPaymentIntent(paymentIntentId);
 
-            // validate and set partial refund amount if provided
+            // validate and set a partial refund amount if provided
             if (request.getAmount() != null) {
                 BigDecimal originalAmount = order.getTotalAmount();
                 if (originalAmount != null && request.getAmount().compareTo(originalAmount) > 0) {

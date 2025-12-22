@@ -12,7 +12,6 @@ import java.util.List;
 @Component
 public interface AuthService {
 
-    //Users register(SignUpRequest signUpRequest);
 
     RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException;
 
@@ -22,24 +21,25 @@ public interface AuthService {
 
     GetProfileResponse getUserProfile(String email);
 
-    MessageResponse DeleteCurrentUser(String email);
+    MessageResponse deleteCurrentUser(String email);
 
     UpdateEmailRequest requestEmailUpdate(String currentEmail, String newEmail);
 
     UpdateEmailResponse verifyEmailUpdate(String tokenStr);
 
     ForgetPasswordResponse forgotPassword(String email);
+
     MessageResponse resetPassword(ResetPasswordRequest request);
-    JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq);
+
+    LoginResponse refreshToken(RefreshTokenReq refreshTokenReq);
+
+    MessageResponse logout(String email, String refreshToken);
 
     MessageResponse updatePassword(UpdatePasswordRequest request, String currentUserEmail);
 
-
     MessageResponse verifyEmail(String token);
 
-
     //dev only for testing
-    //String findTokenByEmail(String email);
     List<Users> getAllUsers();
 
 }

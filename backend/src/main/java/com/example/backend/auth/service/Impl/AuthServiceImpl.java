@@ -5,17 +5,10 @@ import com.cloudinary.utils.ObjectUtils;
 import com.example.backend.auth.dto.Requests.*;
 import com.example.backend.auth.dto.Responses.*;
 import com.example.backend.auth.exception.*;
+import com.example.backend.entity.*;
 import com.example.backend.exception.*;
-import com.example.backend.entity.OTP;
 import com.example.backend.auth.service.AuthService;
-import com.example.backend.entity.Role;
-import com.example.backend.entity.Users;
-import com.example.backend.entity.VerificationToken;
-import com.example.backend.repository.OTPRepository;
-import com.example.backend.repository.PasswordResetAttemptRepository;
-import com.example.backend.repository.UsersRepo;
-import com.example.backend.repository.VerificationTokenRepo;
-import com.example.backend.entity.PasswordResetAttempt;
+import com.example.backend.repository.*;
 import com.example.backend.util.EmailService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +21,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
+
+/**
+ * Authentication and user account service implementation.
+ *
+ * Handles all authentication-related business logic including
+ * - User registration and email verification
+ * - Login and JWT token generation
+ * - Refresh token flow (issuing new access tokens)
+ * - Logout (stateless JWT)
+ * - Profile management
+ * - Password management (update, forgot, reset)
+ * - Email update with verification
+ *
+ * This service uses stateless JWT authentication where:
+ * - Access tokens are short-lived
+ * - Refresh tokens are long-lived and used only to get new access tokens
+ */
+
+@SuppressWarnings("ALL")
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -50,8 +59,22 @@ public class AuthServiceImpl implements AuthService {
 
 
 
-    //---------------------------------------------------register--------------------------------------------------//
 
+
+    /**
+     * Register a new user account.
+     *
+     * Creates a new user with the provided signup details, uploads an optional
+     * profile image to Cloudinary, generates an email verification token,
+     * and sends a verification email to the user.
+     *
+     * The user account remains disabled until email verification is completed.
+     *
+     * @param signUpRequest the signup request containing user details
+     * @param file optional profile image file
+     * @return a response indicating successful registration
+     * @throws IOException if image upload fails
+     */
     @Override
     @Transactional
     public RegisterResponse register(SignUpRequest signUpRequest , MultipartFile file) throws IOException {
@@ -59,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
         if (usersRepo.findByEmail(signUpRequest.getEmail()).isPresent()) {
             throw new EmailAlreadyUsedException("The new email is already in use.");
         }
-        // Determine role: default to USER if null
+        // Determine a role: default to USER if null (because if I want to create new roles for devs (usage only ex. adding category(admin) , adding product(seller))
         Role userRole = signUpRequest.getRole() != null ? signUpRequest.getRole() : Role.ROLE_USER;
     // create new user
     Users user = Users.builder()
@@ -110,8 +133,18 @@ public class AuthServiceImpl implements AuthService {
     return new RegisterResponse("User registered. Please check your email for verification." ,token);
 }
 
-    //---------------------------------------------------verifyEmail--------------------------------------------------//
 
+
+
+    /**
+     * Verify a user's email address.
+     *
+     * Validates the verification token sent to the user's email.
+     * If valid and not expired, the user account is activated.
+     *
+     * @param token the email verification token
+     * @return a message indicating verification result
+     */
     @Override
     @Transactional
     public MessageResponse verifyEmail(String token) {
@@ -132,7 +165,20 @@ public class AuthServiceImpl implements AuthService {
         return new MessageResponse("Email verified successfully!");
     }
 
-    //----------------------------------------------------login-------------------------------------------------//
+
+
+
+    /**
+     * Authenticate a user and generate JWT tokens.
+     *
+     * Validates user credentials using Spring Security authentication.
+     * If successful, generates an access token and a refresh token.
+     *
+     * @param signInRequest login request containing email and password
+     * @return login response containing tokens and user details
+     * @throws InvalidCredentialsException if authentication fails
+     * @throws AccountNotVerifiedException if email is not verified
+     */
     @Override
     public LoginResponse login(SignInRequest signInRequest) {
         try {
@@ -166,34 +212,84 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
-    //-------------------------------------------------refreshToken----------------------------------------------------//
+
+    /**
+     * Refresh an expired access token.
+     *
+     * Validates the provided refresh token and issues a new access token
+     * while reusing the same refresh token.
+     *
+     * This method does not require database-backed refresh tokens
+     * and follows a stateless JWT approach.
+     *
+     * @param refreshTokenReq request containing the refresh token
+     * @return login response with a new access token
+     * @throws InvalidTokenException if the refresh token is invalid or expired
+     */
+
     @Override
-    public JwtAuthenticationResponse refreshToken(RefreshTokenReq refreshTokenReq) {
-        String userEmail;
+    public LoginResponse refreshToken(RefreshTokenReq refreshTokenReq) {
+        String email;
+
         try {
-            userEmail = jwtService.extractUsername(refreshTokenReq.getToken());
-        } catch (Exception ex) {
+            email = jwtService.extractUsername(refreshTokenReq.getToken());
+        } catch (Exception e) {
             throw new InvalidTokenException("Invalid refresh token");
         }
 
-        Users user = usersRepo.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        Users user = usersRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
 
-        // Validate token
+        // Validate refresh token
         if (!jwtService.validateToken(refreshTokenReq.getToken(), user)) {
-            throw new InvalidTokenException("Refresh token is invalid or expired");
+            throw new InvalidTokenException("Refresh token expired or invalid");
         }
 
-        // Generate new JWT
-        String jwt = jwtService.generateToken(user);
+        // Generate a NEW access token
+        String newAccessToken = jwtService.generateToken(user);
 
-        JwtAuthenticationResponse response = new JwtAuthenticationResponse();
-        response.setToken(jwt);
-        response.setRefreshToken(refreshTokenReq.getToken());
-        return response;
+        return new LoginResponse(
+                "Token refreshed successfully",
+                newAccessToken,
+                refreshTokenReq.getToken(), // reuse same refresh token
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getProfileImageUrl(),
+                user.getRole()
+        );
     }
 
-    //-----------------------------------------------updatePassword------------------------------------------------------//
+
+
+    /**
+     * Logout the current user.
+     *
+     * In a stateless JWT setup, logout is handled client-side by
+     * deleting the access and refresh tokens.
+     * No server-side action is required.
+     *
+     * @param email authenticated user's email
+     * @param refreshToken optional refresh token (currently unused)
+     * @return message confirming logout
+     */
+    @Override
+    public MessageResponse logout(String email, String refreshToken) {
+        // Stateless JWT → nothing to do server-side
+        return new MessageResponse("Logged out successfully");
+    }
+
+
+
+    /**
+     * Update the authenticated user's password.
+     *
+     * Verifies the old password before updating to a new encrypted password.
+     *
+     * @param request request containing old and new passwords
+     * @param currentUserEmail authenticated user's email
+     * @return message indicating success
+     */
     @Override
     @Transactional
     public MessageResponse updatePassword(UpdatePasswordRequest request, String currentUserEmail) {
@@ -213,7 +309,21 @@ public class AuthServiceImpl implements AuthService {
         return new MessageResponse("Password updated successfully");
     }
 
-    //-------------------------------------------------updateProfile----------------------------------------------------//
+
+
+    /**
+     * Update the authenticated user's profile.
+     *
+     * Allows updating first name, last name, and profile image.
+     * Profile images are uploaded to Cloudinary.
+     *
+     * @param userEmail authenticated user's email
+     * @param firstName optional new first name
+     * @param lastName optional new last name
+     * @param file optional new profile image
+     * @return response containing updated profile data
+     * @throws IOException if image upload fails
+     */
     @Override
     public UpdateProfileResponse updateProfile(String userEmail, String firstName, String lastName, MultipartFile file) throws IOException {
 
@@ -247,7 +357,17 @@ public class AuthServiceImpl implements AuthService {
                 user.getProfileImageUrl()
         );
     }
-    //-------------------------------------------------getUserProfile----------------------------------------------------//
+
+
+
+
+
+    /**
+     * Retrieve the authenticated user's profile.
+     *
+     * @param email authenticated user's email
+     * @return profile response containing user details
+     */
     public GetProfileResponse getUserProfile(String email) {
         Users user = usersRepo.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
@@ -260,10 +380,18 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
-    //-------------------------------------------DeleteCurrentUser----------------------------------------------------------//
 
+
+    /**
+     * Permanently delete the authenticated user's account.
+     *
+     * Removes the user and any associated verification tokens.
+     *
+     * @param email authenticated user's email
+     * @return message indicating successful deletion
+     */
     @Transactional
-    public MessageResponse DeleteCurrentUser(String email) {
+    public MessageResponse deleteCurrentUser(String email) {
         Users user = usersRepo.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
         verificationTokenRepo.deleteByUser(user);
@@ -273,7 +401,18 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
-    //-------------------------------------------requestEmailUpdate----------------------------------------------------------//
+
+
+    /**
+     * Request an email address update.
+     *
+     * Sends a verification email to the new email address.
+     * The change is only applied after verification.
+     *
+     * @param currentEmail user's current email
+     * @param newEmail requested new email
+     * @return response indicating verification email was sent
+     */
     @Transactional
     public UpdateEmailRequest requestEmailUpdate(String currentEmail, String newEmail) {
         Users user = usersRepo.findByEmail(currentEmail)
@@ -308,8 +447,18 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
-    //-------------------------------------------verifyEmailUpdate----------------------------------------------------------//
-    // Verify email token and update email
+
+
+
+
+    /**
+     * Verify and apply a pending email update.
+     *
+     * Validates the verification token and updates the user's email address.
+     *
+     * @param tokenStr email update verification token
+     * @return response confirming email update
+     */
     @Transactional
     public UpdateEmailResponse verifyEmailUpdate(String tokenStr) {
         VerificationToken token = verificationTokenRepo.findByToken(tokenStr)
@@ -329,12 +478,36 @@ public class AuthServiceImpl implements AuthService {
         verificationTokenRepo.save(token);
         return new UpdateEmailResponse("Email updated successfully" , user.getEmail());
     }
-    //-------------------------------------------getAllUsers----------------------------------------------------------//
 
+
+
+
+    /**
+     * Retrieve all users.
+     *
+     * Intended for development or administrative use.
+     *
+     * @return list of all users
+     */
     public @Nullable List<Users> getAllUsers() {
         return usersRepo.findAll();
     }
-    //-------------------------------------------forgot-password----------------------------------------------------------//
+
+
+
+
+
+    /**
+     * Initiate the password reset process.
+     *
+     * Generates a one-time password (OTP), stores it temporarily,
+     * and sends it to the user's email.
+     * <p>
+     * Rate limits reset attempts to prevent abuse.
+     *
+     * @param currentEmail user's email
+     * @return response indicating OTP was sent
+     */
     @Transactional
     @Override
     public ForgetPasswordResponse forgotPassword(String currentEmail) {
@@ -378,7 +551,19 @@ public class AuthServiceImpl implements AuthService {
 
         return new ForgetPasswordResponse("OTP sent successfully. Please check your inbox." , otp);
     }
-    //-------------------------------------------resetPassword----------------------------------------------------------//
+
+
+
+
+    /**
+     * Reset the user password using OTP verification.
+     *
+     * Validates the OTP and updates the user's password if valid.
+     * OTP is deleted after successful use.
+     *
+     * @param request reset a password request containing OTP and a new password
+     * @return message indicating password reset success
+     */
     @Transactional
     public MessageResponse resetPassword(ResetPasswordRequest request) {
         Users user = usersRepo.findByEmail(request.getEmail())
@@ -392,7 +577,6 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidOtpException("OTP expired");
         }
 
-
         // update password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         usersRepo.save(user);
@@ -402,5 +586,4 @@ public class AuthServiceImpl implements AuthService {
 
         return new MessageResponse("Password reset successfully");
     }
-
 }

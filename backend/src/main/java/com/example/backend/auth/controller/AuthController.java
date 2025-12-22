@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.*;
 
+@SuppressWarnings("ALL")
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -31,7 +32,20 @@ public class AuthController {
     private final AuthService authService;
 
 
-    // register endpoint
+    /**
+     * Register a new user.
+     *
+     * Accepts multipart/form-data so the client can optionally upload a profile picture.
+     *
+     * @param firstName the user's first name
+     * @param lastName the user's last name
+     * @param email the user's email (used as unique identifier)
+     * @param password the user's chosen password
+     * @param role the role assigned to the user
+     * @param file optional profile image file
+     * @return the created registration response (including any tokens or messages)
+     * @throws IOException if an error occurs while reading the uploaded file
+     */
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<RegisterResponse> register(
             @RequestParam String firstName,
@@ -48,7 +62,15 @@ public class AuthController {
     }
 
 
-    // verify email for user Register endpoint
+    /**
+     * Verify email for a newly registered user.
+     *
+     * Confirms the supplied verification token and activates the user account if valid.
+     *
+     * @param token verification token that was sent to the user's email
+     * @return a message response indicating success or failure
+     */
+
     @GetMapping("/verify-email")
     public ResponseEntity<MessageResponse> verifyEmail(@RequestParam("token") @NotBlank String token) {
         MessageResponse resp = authService.verifyEmail(token);
@@ -56,7 +78,14 @@ public class AuthController {
     }
 
 
-    // login endpoint
+    /**
+     * Authenticate a user (login).
+     *
+     * Validates credentials and returns login information (tokens/user info).
+     *
+     * @param request the sign-in request containing email and password
+     * @return login response containing access and refresh tokens (or equivalent)
+     */
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody SignInRequest request) {
         LoginResponse response = authService.login(request);
@@ -64,7 +93,48 @@ public class AuthController {
     }
 
 
+    /**
+     * Refresh authentication tokens using a refresh token.
+     *
+     * Accepts a RefreshTokenRequest (containing the refresh token) and returns a new set of tokens.
+     *
+     * @param request refresh token request containing the refresh token
+     * @return new login/ token response (e.g., new access token and possibly a new refresh token)
+     */
+    @PostMapping("/refresh-token")
+    public ResponseEntity<LoginResponse> refreshToken(@Valid @RequestBody RefreshTokenReq request) {
+        return ResponseEntity.ok(authService.refreshToken(request));
+    }
 
+    /**
+     * Log out the current user and optionally revoke a refresh token.
+     *
+     * This endpoint invalidates the server-side session /refresh token state for the authenticated user.
+     * If a refresh token is supplied, it will be revoked; otherwise the service may revoke tokens
+     * associated with the authenticated user.
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @return a message response indicating logout success
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<MessageResponse> logout(Authentication authentication) {
+        return ResponseEntity.ok(authService.logout(authentication.getName(), null));
+    }
+
+
+    /**
+     * Update the current user's profile.
+     *
+     * Allows updating the first / last name and an optional profile picture. The authenticated user's
+     * identity is taken from the Security Authentication principal (email).
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @param firstName optional new first name
+     * @param lastName optional new last name
+     * @param file optional new profile image file
+     * @return response containing updated profile details
+     * @throws IOException if reading the provided file fails
+     */
     @PutMapping(value = "/update-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UpdateProfileResponse> updateProfile(
             Authentication authentication,
@@ -73,7 +143,7 @@ public class AuthController {
             @RequestPart(value = "file", required = false) MultipartFile file
     ) throws IOException {
 
-        String TokenEmail = authentication.getName(); // Extract user identity from token
+        String TokenEmail = authentication.getName(); // Extract user identity from a token
 
         UpdateProfileResponse response = authService.updateProfile(
                 TokenEmail,
@@ -85,7 +155,15 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    //get current user profile
+
+    /**
+     * Get the currently authenticated user's profile.
+     *
+     * Uses the authenticated principal to fetch the user's profile.
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @return the user's profile response
+     */
     @GetMapping("/me")
     public ResponseEntity<GetProfileResponse> getCurrentUser(Authentication authentication) {
         GetProfileResponse resp= authService.getUserProfile(authentication.getName());
@@ -94,21 +172,47 @@ public class AuthController {
 
 
 
-    //delete current user profile
+    /**
+     * Delete the currently authenticated user's account.
+     *
+     * Permanently deletes the user tied to the authenticated principal (email).
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @return a message response indicating deletion success or failure
+     */
     @DeleteMapping("/me")
     public ResponseEntity<MessageResponse> DeleteCurrentUser(Authentication authentication){
-        MessageResponse resp = authService.DeleteCurrentUser(authentication.getName());
+        MessageResponse resp = authService.deleteCurrentUser(authentication.getName());
         return ResponseEntity.ok(resp);
     }
 
 
-    // update email
+
+    /**
+     * Request an email update for the current user.
+     *
+     * Triggers an email verification flow to change the user's email. The service will send
+     * a verification link/token to the new email address.
+     *
+     * @param request contains the new email address
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @return the original request object (or service-provided tracking information)
+     */
     @PostMapping("/update-email")
     public ResponseEntity<UpdateEmailRequest> requestEmailUpdate(@Valid @RequestBody UpdateEmailRequest request, Authentication authentication) {
         UpdateEmailRequest resp = authService.requestEmailUpdate(authentication.getName(), request.getNewEmail());
         return ResponseEntity.accepted().body(resp);
     }
 
+
+    /**
+     * Verify updated email address using token.
+     *
+     * Confirms the token that was sent to the new email address and performs the actual update.
+     *
+     * @param token verification token
+     * @return response describing the result of the email update (success/failure)
+     */
     @GetMapping("/update-email/verify")
     public ResponseEntity<UpdateEmailResponse> verifyUpdatedEmail(@RequestParam("token") @NotBlank String token) {
         UpdateEmailResponse resp = authService.verifyEmailUpdate(token);
@@ -116,26 +220,55 @@ public class AuthController {
     }
 
 
-    // update password
+    /**
+     * Update the current user's password.
+     *
+     * Allows authenticated users to change their password by supplying old/new credentials (as defined in UpdatePasswordRequest).
+     *
+     * @param request update password request containing current and new password
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @return message response indicating whether the password update succeeded
+     */
     @PutMapping("/update-password")
     public ResponseEntity<MessageResponse> updatePassword( @Valid @RequestBody UpdatePasswordRequest request, Authentication authentication) {
         MessageResponse resp = authService.updatePassword(request, authentication.getName());
         return ResponseEntity.ok(resp);
     }
 
-    // forget password
+    /**
+     * Initiate the "forgot password" flow.
+     *
+     * Sends a password-reset token/link to the provided email if the account exists.
+     *
+     * @param body map containing "email" key
+     * @return a response containing forgot password flow details
+     */
     @PostMapping("/forgot-password")
     public ResponseEntity<ForgetPasswordResponse> forgotPassword(@RequestBody Map<String,String> body) {
         return ResponseEntity.ok(authService.forgotPassword(body.get("email")));
     }
 
-    // reset password
+
+    /**
+     * Reset password using a reset token.
+     *
+     * Consumes a ResetPasswordRequest that includes the token and the new password.
+     *
+     * @param request reset password request containing token and new password
+     * @return message response indicating success or failure
+     */
     @PostMapping("/reset-password")
     public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         return ResponseEntity.ok(authService.resetPassword(request));
     }
 
-    // (dev endpoints for testing)
+    /**
+     * Development/test endpoint: list all users.
+     *
+     * Exposes all users in the system — intended for dev/test only and should be removed or secured for production.
+     *
+     * @return a list of user entities
+     */
     @GetMapping("/dev/users")
     public ResponseEntity<List<Users>> listUsers() {
         return ResponseEntity.ok((authService).getAllUsers());
