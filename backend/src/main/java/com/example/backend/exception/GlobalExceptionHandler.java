@@ -7,6 +7,7 @@ import com.example.backend.Wishlist.exception.WishlistNotFoundException;
 import com.example.backend.auth.dto.Responses.MessageResponse;
 import com.example.backend.auth.exception.*;
 import com.example.backend.payment.exception.*;
+import com.example.backend.seller.exception.SellerRequestException;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -16,8 +17,23 @@ import org.springframework.web.bind.annotation.*;
 import java.time.*;
 import java.util.Map;
 
+@SuppressWarnings("ALL")
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+
+    // ----------------- Seller module exceptions ----------------- //
+
+    @ExceptionHandler(SellerRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleSellerRequestException(SellerRequestException ex) {
+        Map<String, Object> body = Map.of(
+                "status", 400,
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "error", "Seller Request Error"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
 
     // ----------------- Payment module exceptions ----------------- //
 
