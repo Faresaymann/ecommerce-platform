@@ -32,6 +32,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 
+@SuppressWarnings("ALL")
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
@@ -41,7 +42,21 @@ public class ProductServiceImpl implements ProductService {
      private final Cloudinary cloudinary;
      private final UsersRepo usersRepository;
 
-    //---------------------------------------------------createProduct--------------------------------------------------//
+
+
+
+    /**
+     * Create a new product.
+     *
+     * Validates product name uniqueness, category existence, and sets the authenticated user as seller.
+     * Optionally uploads a product image to Cloudinary.
+     *
+     * @param request the product data
+     * @param file optional product image file
+     * @param sellerEmail the email of the authenticated seller
+     * @return ProductResponse containing created product details
+     * @throws IOException if an error occurs while uploading the image
+     */
     @Override
     public ProductResponse createProduct(ProductRequest request, MultipartFile file ,String sellerEmail ) throws IOException {
         String name = request.getName().trim();
@@ -88,7 +103,20 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponse(product, "Product created successfully :<>:");
     }
 
-    //---------------------------------------------------getProductById--------------------------------------------------//
+
+
+
+    /**
+     * Get a product by its UUID.
+     *
+     * Validates that the product is active and in stock.
+     *
+     * @param id the UUID of the product
+     * @return ProductResponse with product details
+     * @throws ProductNotFoundException if product does not exist
+     * @throws ProductInactiveException if product is inactive
+     * @throws ProductOutOfStockException if product stock is zero
+     */
     @Override
     public ProductResponse getProductById(UUID id) {
         Product product = repo.findById(id)
@@ -103,7 +131,15 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponse(product, "Product found successfully :D ");
 
     }
-    //---------------------------------------------------getAllProducts--------------------------------------------------//
+
+
+
+
+    /**
+     * Get all products.
+     *
+     * @return list of ProductResponse objects
+     */
     @Override
     public List<ProductResponse> getAllProducts() {
         List<Product> products = repo.findAll();
@@ -114,8 +150,22 @@ public class ProductServiceImpl implements ProductService {
         return products.stream().map(p -> mapToResponse(p, "Products found successfully :D ")).collect(Collectors.toList());
     }
 
-    //---------------------------------------------------updateProduct--------------------------------------------------//
-    @Override
+
+
+    /**
+     * Update an existing product.
+     *
+     * Only allowed for the product owner or admin. Validates updates and optionally uploads a new image.
+     *
+     * @param id the UUID of the product to update
+     * @param request the updated product data
+     * @param file optional new product image
+     * @param sellerEmail the email of the authenticated user
+     * @return ProductResponse containing updated product details
+     * @throws IOException if an error occurs while uploading the image
+     * @throws ProductOwnershipException if user is not owner/admin
+     * @throws ProductNotFoundException if product does not exist
+     */    @Override
     @Transactional
     public ProductResponse updateProduct(UUID id, ProductRequest request , MultipartFile file, String sellerEmail) throws IOException {
         // fetch product or throw
@@ -185,7 +235,19 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponse(product, "Product updated successfully");
     }
 
-    //---------------------------------------------------deleteProduct--------------------------------------------------//
+
+
+    /**
+     * Delete a product by UUID.
+     *
+     * Only allowed for the product owner or admin.
+     *
+     * @param id the UUID of the product
+     * @param sellerEmail the email of the authenticated user
+     * @return MessageResponse confirming deletion
+     * @throws ProductOwnershipException if user is not owner/admin
+     * @throws ProductNotFoundException if product does not exist
+     */
     @Override
     public MessageResponse deleteProduct(UUID id , String sellerEmail)  {
         Product product = repo.findById(id)
@@ -197,6 +259,8 @@ public class ProductServiceImpl implements ProductService {
         repo.deleteById(id);
         return new MessageResponse("Product deleted successfully");
     }
+
+
     //---------------------------------------------------helper mapper--------------------------------------------------//
 
     // --- mapToResponse --- //
