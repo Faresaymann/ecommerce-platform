@@ -17,6 +17,12 @@ import org.springframework.web.bind.annotation.*;
 import java.time.*;
 import java.util.Map;
 
+/**
+ * Global exception handler for the entire backend application.
+ *
+ * Handles exceptions from all modules including Auth, Seller, Payment, Product, Order, Wishlist, and Category.
+ * Returns consistent HTTP responses with status, timestamp, error type, and message.
+ */
 @SuppressWarnings("ALL")
 @RestControllerAdvice
 public class GlobalExceptionHandler {

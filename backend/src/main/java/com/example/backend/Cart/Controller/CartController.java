@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@SuppressWarnings("ALL")
 @RestController
 @RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor
@@ -23,8 +24,13 @@ public class CartController {
 
 
     /**
-     * Add product to cart (creates cart if missing).
-     * Body: { "productId": "<uuid>", "quantity": 1 }
+     * Add a product to the user's cart.
+     *
+     * If the user has no existing cart, a new cart is created automatically.
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @param request the cart item request containing productId and quantity
+     * @return the updated {@link CartResponse} including all current items
      */
     @PostMapping("/add")
     @PreAuthorize("isAuthenticated()")
@@ -38,8 +44,13 @@ public class CartController {
     }
 
     /**
-     * Update quantity of an existing cart item. If quantity <= 0, item is removed.
-     * Body: { "productId": "<uuid>", "quantity": 2 }
+     * Update the quantity of an existing cart item.
+     *
+     * If the quantity is set to 0 or less, the item is removed from the cart.
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @param request the cart item request containing productId and the new quantity
+     * @return the updated {@link CartResponse} including all current items
      */
     @PutMapping("/update")
     @PreAuthorize("isAuthenticated()")
@@ -53,7 +64,13 @@ public class CartController {
     }
 
     /**
-     * Remove a product from the cart by productId (path).
+     * Update the quantity of an existing cart item.
+     *
+     * If the quantity is set to 0 or less, the item is removed from the cart.
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @param productId the cart item request containing productId and the new quantity
+     * @return the updated {@link CartResponse} including all current items
      */
     @DeleteMapping("/remove/{productId}")
     @PreAuthorize("isAuthenticated()")
@@ -66,8 +83,12 @@ public class CartController {
         return ResponseEntity.ok(resp);
     }
 
+
     /**
-     * Get the current user's cart.
+     * Retrieve the current user's cart.
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @return the {@link CartResponse} including all items currently in the cart
      */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -78,14 +99,16 @@ public class CartController {
     }
 
     /**
-     * Clear user's cart (delete all items). Returns 204 No Content.
+     * Clear all items from the current user's cart.
+     *
+     * @param authentication Spring Security authentication object (used to get user email)
+     * @return a {@link MessageResponse} confirming that the cart has been cleared
      */
     @DeleteMapping("/clear")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<MessageResponse> clearCart(Authentication authentication) {
         String userEmail = authentication.getName();
-        cartService.clearCart(userEmail);
-        return ResponseEntity.ok(new MessageResponse("Cart cleared."));
+        return ResponseEntity.ok(cartService.clearCart(userEmail));
     }
 
 
