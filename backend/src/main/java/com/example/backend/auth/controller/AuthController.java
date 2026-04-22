@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.*;
 
 @SuppressWarnings("ALL")
+
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -52,7 +54,7 @@ public class AuthController {
             @RequestParam String lastName,
             @RequestParam String email,
             @RequestParam String password,
-            @RequestParam Role role,
+            @RequestParam(required = false) Role role,
             @RequestPart(value = "file", required = false) MultipartFile file) throws IOException {
 
         SignUpRequest dto = new SignUpRequest(firstName, lastName, email, password, role);

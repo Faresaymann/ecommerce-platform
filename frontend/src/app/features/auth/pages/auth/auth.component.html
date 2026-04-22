@@ -1,0 +1,147 @@
+<div class="auth-page">
+  <div class="auth-shell" [class.right-panel-active]="isSignUp">
+
+    <div class="auth-panel auth-sign-in">
+      <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" class="auth-form">
+        <div class="form-head">
+          <h2>Sign In</h2>
+          <p class="subtitle">Welcome back 👋</p>
+        </div>
+
+        <div class="form-body">
+          <div class="error-alert" *ngIf="loginError()">
+            {{ loginError() }}
+          </div>
+
+          <div class="field">
+            <label>Email</label>
+            <input type="email" formControlName="email" placeholder="Enter your email" />
+            <small class="error-text" *ngIf="invalid(loginForm, 'email', submittedLogin)">
+              Please enter a valid email.
+            </small>
+          </div>
+
+          <div class="field">
+            <label>Password</label>
+            <input type="password" formControlName="password" placeholder="Enter your password" />
+            <small class="error-text" *ngIf="invalid(loginForm, 'password', submittedLogin)">
+              Password must be at least 6 characters.
+            </small>
+          </div>
+
+          <button type="submit" class="auth-btn" [disabled]="loginLoading()">
+            {{ loginLoading() ? 'Signing In...' : 'Sign In' }}
+          </button>
+        </div>
+
+        <div class="auth-footer">
+          <p class="switch-text">
+            Don't have an account?
+            <button type="button" class="switch-btn" (click)="showSignUp()">Sign Up</button>
+          </p>
+        </div>
+      </form>
+    </div>
+
+    <div class="auth-panel auth-sign-up">
+      <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" class="auth-form" *ngIf="!registerSuccess()">
+        <div class="form-head">
+          <h2>Sign Up</h2>
+          <p class="subtitle">Create your account 🚀</p>
+        </div>
+
+        <div class="form-body">
+          <div class="error-alert" *ngIf="registerError()">
+            {{ registerError() }}
+          </div>
+
+          <div class="field avatar-field">
+            <label>Profile Photo</label>
+            <label class="avatar-upload">
+              <input type="file" accept="image/*" (change)="onFileChange($event)" />
+              <div
+                class="avatar-circle"
+                [style.backgroundImage]="avatarPreview() ? 'url(' + avatarPreview() + ')' : 'none'"
+                [class.has-image]="!!avatarPreview()"
+              >
+                <span *ngIf="!avatarPreview()">+</span>
+              </div>
+            </label>
+            <small class="avatar-help">Add a profile photo</small>
+          </div>
+
+          <div class="row-fields">
+            <div class="field half">
+              <label>First Name</label>
+              <input type="text" formControlName="firstName" placeholder="First name" />
+              <small class="error-text" *ngIf="invalid(registerForm, 'firstName', submittedRegister)">
+                First name is required.
+              </small>
+            </div>
+
+            <div class="field half">
+              <label>Last Name</label>
+              <input type="text" formControlName="lastName" placeholder="Last name" />
+              <small class="error-text" *ngIf="invalid(registerForm, 'lastName', submittedRegister)">
+                Last name is required.
+              </small>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Email</label>
+            <input type="email" formControlName="email" placeholder="Enter your email" />
+            <small class="error-text" *ngIf="invalid(registerForm, 'email', submittedRegister)">
+              Please enter a valid email.
+            </small>
+          </div>
+
+          <div class="field">
+            <label>Password</label>
+            <input type="password" formControlName="password" placeholder="Create a password" />
+            <small class="error-text" *ngIf="invalid(registerForm, 'password', submittedRegister)">
+              Password must be at least 6 characters.
+            </small>
+          </div>
+
+          <button type="submit" class="auth-btn" [disabled]="registerLoading()">
+            {{ registerLoading() ? 'Creating Account...' : 'Sign Up' }}
+          </button>
+        </div>
+
+        <div class="auth-footer">
+          <p class="switch-text">
+            Already have an account?
+            <button type="button" class="switch-btn" (click)="showSignIn()">Sign In</button>
+          </p>
+        </div>
+      </form>
+
+      <div class="success-message" *ngIf="registerSuccess()">
+        <h3>✓ {{ registerSuccess() }}</h3>
+        <p>Redirecting to Sign In...</p>
+      </div>
+    </div>
+
+    <div class="overlay-container">
+      <div class="overlay">
+        <div class="overlay-panel overlay-left">
+          <div class="hero-card">
+            <div class="brand-logo">NC</div>
+            <h3>NovaCart</h3>
+            <p>Shop smarter, faster, and with style.</p>
+          </div>
+        </div>
+
+        <div class="overlay-panel overlay-right">
+          <div class="hero-card">
+            <div class="brand-logo">NC</div>
+            <h3>NovaCart</h3>
+            <p>Join the store and start shopping today.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
