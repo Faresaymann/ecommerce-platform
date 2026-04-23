@@ -2,8 +2,8 @@ import { Component, signal } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule, FormGroup } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
-import { TokenService } from '../../services/token.service';
+import { AuthService } from '../services/auth.service';
+import { TokenService } from '../../../core/services/token.service';
 
 @Component({
   selector: 'app-auth',
@@ -83,7 +83,10 @@ export class AuthComponent {
 
   submitLogin() {
     this.submittedLogin = true;
-    if (this.loginForm.invalid) return;
+   if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
 
     this.loginLoading.set(true);
     this.loginError.set(null);
@@ -123,7 +126,11 @@ export class AuthComponent {
 
   submitRegister() {
     this.submittedRegister = true;
-    if (this.registerForm.invalid) return;
+    if (this.registerForm.invalid) {
+      this.registerForm.markAllAsTouched();
+      return;
+    }
+
 
     this.registerLoading.set(true);
     this.registerError.set(null);

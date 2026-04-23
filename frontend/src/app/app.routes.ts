@@ -1,9 +1,21 @@
 import { Routes } from '@angular/router';
-import { AuthComponent } from './features/auth/pages/auth/auth.component';
-import { HomeComponent } from './pages/home/home.component';
+import { AuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/auth', pathMatch: 'full' },
-  { path: 'auth', component: AuthComponent },
-  { path: 'home', component: HomeComponent },
+  {
+    path: 'auth',
+    loadComponent: () =>
+      import('./features/auth/pages/auth.component').then(m => m.AuthComponent),
+  },
+  {
+    path: 'home',
+    loadComponent: () =>
+      import('./features/home/pages/home/home.component').then(m => m.HomeComponent),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: '',
+    redirectTo: 'auth',
+    pathMatch: 'full',
+  },
 ];
